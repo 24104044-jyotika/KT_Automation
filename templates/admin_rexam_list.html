@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Re-Exam Reminders – Admin{% endblock %}
+{% block extra_css %}
+<style>
+    .rexam-filter-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 16px 20px;
+        background: var(--bg2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-bottom: 20px;
+    }
+
+    .rexam-stats {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text2);
+    }
+
+    .btn-send-reminders {
+        padding: 9px 22px;
+        background: var(--teal);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.88rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-send-reminders:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .btn-send-reminders:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    #toast-rexam {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        z-index: 9999;
+        background: #1a8a7a;
+        color: #fff;
+        padding: 14px 22px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    #toast-rexam.show {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    #toast-rexam.error {
+        background: #e05252;
+    }
+
+    #toast-rexam.success {
+        background: #1a8a7a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Re-Exam Form Reminders</h1>
+    <p>Students who failed after revaluation — receiving regular Email reminders.</p>
+</div>
+
+<div class="rexam-filter-bar">
+    <div class="rexam-stats">
+        <span>Active reminders: <strong id="active-count" style="color:var(--danger)">{{
+                reminders|selectattr('is_active')|list|length }}</strong></span>
+        &nbsp;|&nbsp;
+        <span>Completed: <strong id="completed-count" style="color:var(--success)">{{
+                reminders|rejectattr('is_active')|list|length }}</strong></span>
+    </div>
+    <button class="btn-send-reminders" id="btnSendReminders" onclick="sendRemindersNow()">
+        <span> Send Reminders Now</span>
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-wrap" id="reminders-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Subject</th>
+                    <th>Sem / Year</th>
+                    <th style="text-align:center">PRN</th>
+                    <th style="text-align:center">Reminders Sent</th>
+                    <th style="text-align:center">Last Reminded</th>
+                    <th style="text-align:center">Status</th>
+                    <th style="text-align:center">Form Filled At</th>
+                </tr>
+            </thead>
+            <tbody id="reminders-tbody">
+                {% for r in reminders %}
+                <tr>
+                    <td>
+                        <strong>{{ r.student.name }}</strong><br>
+                        <span style="font-size:0.78rem;color:var(--text3)">{{ r.student.email }}</span>
+                        {% if r.student.phone %}
+                        <br><span style="font-size:0.75rem;color:var(--teal)"> +91{{ r.student.phone }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="subject-tag">{{ r.subject_name }}</td>
+                    <td><span class="chip">Sem {{ r.semester }}</span><br> {{ r.exam_year }}</td>
+                    <td class="fw-mono" style="text-align:center">{{ r.prn_number }}</td>
+                    <td style="text-align:center">
+                        <span style="display:inline-flex;align-items:center;gap:6px;justify-content:center">
+                            <span
+                                style="font-size:1.1rem;font-weight:700;
+                                color:{% if r.reminder_count >= 3 %}var(--danger){% elif r.reminder_count >= 2 %}var(--warning){% else %}var(--teal){% endif %}">
+                                {{ r.reminder_count }}
+                            </span>
+                            <span style="font-size:0.75rem;color:var(--text3)">sent</span>
+                        </span>
+                    </td>
+                    <td class="date-tag" style="text-align:center">
+                        {{ r.last_reminded.strftime('%d %b %Y') if r.last_reminded else '—' }}
+                    </td>
+                    <td style="text-align:center">
+                        {% if r.is_active %}
+                        <span class="badge" style="background:#fce8e8;color:var(--danger)">
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="badge badge-updated"> Form Filled</span>
+                        {% endif %}
+                    </td>
+                    <td class="date-tag" style="text-align:center">
+                        {{ r.form_filled_at.strftime('%d %b %Y') if r.form_filled_at else '—' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-row">No re-exam reminders yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Info box -->
+
+<div id="toast-rexam"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showToastRexam(msg, isError = false) {
+        const t = document.getElementById('toast-rexam');
+        t.textContent = msg;
+        t.className = 'show ' + (isError ? 'error' : 'success');
+        setTimeout(() => t.className = '', 4500);
+    }
+
+    async function sendRemindersNow() {
+        const btn = document.getElementById('btnSendReminders');
+        btn.disabled = true;
+        btn.innerHTML = ' <span>Sending reminders...</span>';
+
+        try {
+            const res = await fetch('/admin/rexam/send-reminders', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                // Update counts
+                document.getElementById('active-count').textContent = data.active_count;
+                document.getElementById('completed-count').textContent = data.completed_count;
+
+                // Rebuild table
+                const tbody = document.getElementById('reminders-tbody');
+
+                if (data.reminders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">No re-exam reminders yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = data.reminders.map(r => `
+                    <tr>
+                        <td>
+                            <strong>${r.student_name}</strong><br>
+                            <span style="font-size:0.78rem;color:var(--text3)">${r.student_email}</span>
+                        </td>
+                        <td class="subject-tag">${r.subject_name}</td>
+                        <td><span class="chip">Sem ${r.semester}</span> ${r.exam_year}</td>
+                        <td class="fw-mono">${r.prn_number}</td>
+                        <td>
+                            <span style="display:inline-flex;align-items:center;gap:6px">
+                                <span style="font-size:1.1rem;font-weight:700;
+                                    color:${r.reminder_count >= 3 ? 'var(--danger)' : r.reminder_count >= 2 ? 'var(--warning)' : 'var(--teal)'}">
+                                    ${r.reminder_count}
+                                </span>
+                                <span style="font-size:0.75rem;color:var(--text3)">sent</span>
+                            </span>
+                        </td>
+                        <td class="date-tag">${r.last_reminded}</td>
+                        <td>
+                            <span class="badge ${r.is_active ? 'style="background:#fce8e8;color:var(--danger)"' : 'badge-updated'}"}>
+                                ${r.is_active ? ' Active' : ' Form Filled'}
+                            </span>
+                        </td>
+                        <td class="date-tag">${r.form_filled_at}</td>
+                    </tr>
+                `).join('');
+                }
+
+                showToastRexam(` Reminders sent to ${data.reminders.filter(r => r.is_active).length} active student(s)!`);
+            } else {
+                showToastRexam(data.message, true);
+            }
+        } catch (err) {
+            showToastRexam('Error: ' + err.message, true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = ' <span>Send Reminders Now</span>';
+        }
+    }
+</script>
+{% endblock %}

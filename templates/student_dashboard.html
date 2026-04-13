@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – MU Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Hello, {{ current_user.name }} </h1>
+    <p>Track your applications, results, and notifications from one place.</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-info">
+            <p>Revaluation Apps</p>
+            <h2>{{ reval_apps|length }}</h2>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange">📋</div>
+        <div class="stat-info">
+            <p>Photocopy Apps</p>
+            <h2>{{ photo_apps|length }}</h2>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue">🔔</div>
+        <div class="stat-info">
+            <p>Unread Notifications</p>
+            <h2>{{ unread }}</h2>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">📊</div>
+        <div class="stat-info">
+            <p>Results Updated</p>
+            <h2>{{ reval_apps|selectattr('status','equalto','Result Updated')|list|length }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card mb-3" style="padding:20px 28px">
+    <div class="flex items-center gap-2" style="flex-wrap:wrap">
+        <span style="font-weight:600;color:var(--text2);font-size:0.9rem">Quick Actions:</span>
+        <a href="{{ url_for('apply_revaluation') }}" class="btn btn-primary btn-sm">+ Apply for Revaluation</a>
+        <a href="{{ url_for('apply_photocopy') }}" class="btn btn-secondary btn-sm">+ Apply for Photocopy</a>
+    </div>
+</div>
+
+
+<!--  Re-Exam Alert Banner -->
+{% if active_rexam %}
+<div style="background:linear-gradient(135deg,#fce8e8,#fff3e0);border:2px solid var(--danger);
+            border-radius:14px;padding:20px 24px;margin-bottom:24px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span style="font-size:1.8rem"></span>
+        <div>
+            <h2 style="margin:0;font-size:1rem;font-weight:700;color:var(--danger)">
+                Re-Exam Form Action Required!
+            </h2>
+            <p style="margin:0;font-size:0.85rem;color:#c0392b">
+                You failed {{ active_rexam|length }} subject(s) after revaluation.
+                Fill the re-exam form immediately to avoid missing the exam.
+            </p>
+        </div>
+    </div>
+    {% for rem in active_rexam %}
+    <div style="background:white;border:1px solid #f5b8b8;border-radius:10px;
+                padding:14px 18px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+                <div style="font-weight:700;color:var(--text);font-size:0.95rem">{{ rem.subject_name }}</div>
+                <div style="font-size:0.8rem;color:var(--text3);margin-top:2px">
+                    Sem {{ rem.semester }} · {{ rem.exam_year }} · PRN: {{ rem.prn_number }}
+                </div>
+                <div style="font-size:0.78rem;color:var(--danger);margin-top:4px;font-weight:600">
+                    {{ rem.reminder_count }} reminder(s) sent to you
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <a href="https://mu.ac.in" target="_blank" class="btn btn-sm"
+                    style="background:var(--danger);color:white">
+                    Fill Re-Exam Form
+                </a>
+                <form method="POST" action="{{ url_for('rexam_form_filled', reminder_id=rem.id) }}">
+                    <button type="submit" class="btn btn-secondary btn-sm"
+                        onclick="return confirm('Have you filled the re-exam form for {{ rem.subject_name }}?')">
+                        Mark as Filled
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    <div style="font-size:0.78rem;color:#c0392b;margin-top:6px">
+        You will receive WhatsApp + Email reminders every 3 days until you mark the form as filled.
+    </div>
+</div>
+{% endif %}
+
+<div class="dash-grid">
+    <!-- Revaluation Applications -->
+    <div class="card">
+        <div class="section-header">
+            <h2> Revaluation Applications</h2>
+            <a href="{{ url_for('apply_revaluation') }}" class="btn btn-primary btn-xs">+ New</a>
+        </div>
+        {% if reval_apps %}
+        <div class="app-cards-list">
+            {% for app in reval_apps %}
+            <div class="app-card">
+                <div class="app-card-header">
+                    <div>
+                        <div class="app-card-title subject-tag">{{ app.subject_name }}</div>
+                        <div class="app-card-sub">{{ app.prn_number }} · Sem {{ app.semester }} · {{ app.exam_year }}
+                        </div>
+                        <div style="font-size:0.78rem;color:var(--teal);font-weight:700;margin-top:2px"> Fee: ₹{{
+                            app.fee_amount }}</div>
+                    </div>
+                    {% set status_map =
+                    {'Applied':'badge-applied','Verified':'badge-verified','Monitoring':'badge-monitoring','Result
+                    Updated':'badge-updated'} %}
+                    <span class="badge {{ status_map.get(app.status,'badge-applied') }}">{{ app.status }}</span>
+                </div>
+                <!-- Timeline -->
+                <div class="timeline">
+                    {% set ns = namespace(passed=True) %}
+                    {% for step, icon in [('Applied',''),('Monitoring',''),('Result Updated','')] %}
+                    {% if not loop.first %}<div class="tl-line {% if ns.passed %}done{% endif %}"></div>{% endif %}
+                    {% set is_current = (app.status == step) or (app.status == 'Verified' and step == 'Applied') %}
+                    {% set is_done = (app.status == 'Result Updated' and step != 'Result Updated') or (app.status ==
+                    'Monitoring' and step == 'Applied') %}
+                    <div class="tl-step">
+                        <div class="tl-dot {% if is_done %}done{% elif is_current %}active{% endif %}">{{ icon }}</div>
+                        <div class="tl-label {% if is_done or is_current %}done{% endif %}">{{ step }}</div>
+                    </div>
+                    {% if not (app.status == 'Result Updated') and step == app.status %}{% set ns.passed = False %}{%
+                    endif %}
+                    {% endfor %}
+                </div>
+                {% if app.status == 'Result Updated' and app.updated_result %}
+                <div
+                    style="margin-top:8px;padding:8px 12px;background:var(--teal-pale);border-radius:8px;font-size:0.82rem;color:var(--teal-dark)">
+                    <strong>Updated Result:</strong> {{ app.updated_result }}
+                </div>
+                {% endif %}
+                <div class="date-tag mt-1">Applied: {{ app.applied_at.strftime('%d %b %Y') }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px 0;color:var(--text3)">
+            <div style="font-size:2.5rem;margin-bottom:8px"></div>
+            <p>No revaluation applications yet.</p>
+            <a href="{{ url_for('apply_revaluation') }}" class="btn btn-primary btn-sm" style="margin-top:12px">Apply
+                Now</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Photocopy Applications -->
+    <div class="card">
+        <div class="section-header">
+            <h2> Photocopy Applications</h2>
+            <a href="{{ url_for('apply_photocopy') }}" class="btn btn-primary btn-xs">+ New</a>
+        </div>
+        {% if photo_apps %}
+        <div class="app-cards-list">
+            {% for app in photo_apps %}
+            <div class="app-card">
+                <div class="app-card-header">
+                    <div>
+                        <div class="app-card-title subject-tag">{{ app.subject_name }}</div>
+                        <div class="app-card-sub">{{ app.prn_number }} · Sem {{ app.semester }} · {{ app.exam_year }}
+                        </div>
+                        <div style="font-size:0.78rem;color:#c05621;font-weight:700;margin-top:2px"> Fee: ₹{{
+                            app.fee_amount }}</div>
+                    </div>
+                    {% set status_map = {'Applied':'badge-applied','In
+                    Progress':'badge-progress','Delivered':'badge-delivered'} %}
+                    <span class="badge {{ status_map.get(app.status,'badge-applied') }}">{{ app.status }}</span>
+                </div>
+                <div class="timeline">
+                    {% for step, icon in [('Applied',''),('In Progress',''),('Delivered','')] %}
+                    {% if not loop.first %}
+                    <div
+                        class="tl-line {% if (app.status == 'In Progress' and step == 'Applied') or app.status == 'Delivered' %}done{% endif %}">
+                    </div>
+                    {% endif %}
+                    {% set is_done = (app.status == 'Delivered' and step != 'Delivered') or (app.status == 'In Progress'
+                    and step == 'Applied') %}
+                    {% set is_current = app.status == step %}
+                    <div class="tl-step">
+                        <div class="tl-dot {% if is_done %}done{% elif is_current %}active{% endif %}">{{ icon }}</div>
+                        <div class="tl-label {% if is_done or is_current %}done{% endif %}">{{ step }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if app.expected_by and app.status == 'In Progress' %}
+                <div
+                    style="margin-top:8px;padding:8px 12px;background:#fff3e0;border-radius:8px;font-size:0.82rem;color:#c05621">
+                    Expected by: {{ app.expected_by.strftime('%d %b %Y') }}
+                </div>
+                {% endif %}
+                <div class="flex items-center gap-2 mt-1" style="justify-content:space-between">
+                    <div class="date-tag">Applied: {{ app.applied_at.strftime('%d %b %Y') }}</div>
+                    {% if app.status == 'In Progress' %}
+                    <form method="POST" action="{{ url_for('mark_photocopy_received', app_id=app.id) }}">
+                        <button type="submit" class="btn btn-primary btn-xs">Mark Received</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px 0;color:var(--text3)">
+            <div style="font-size:2.5rem;margin-bottom:8px"></div>
+            <p>No photocopy applications yet.</p>
+            <a href="{{ url_for('apply_photocopy') }}" class="btn btn-primary btn-sm" style="margin-top:12px">Apply
+                Now</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Notifications -->
+<div class="card mt-3">
+    <div class="section-header">
+        <h2> Recent Notifications</h2>
+        {% if unread > 0 %}
+        <button onclick="markAllRead()" class="btn btn-secondary btn-sm">Mark all read</button>
+        {% endif %}
+    </div>
+    {% if notifs %}
+    <div style="display:flex;flex-direction:column;gap:10px">
+        {% for n in notifs %}
+        <div class="app-card {% if not n.is_read %}unread-notif{% endif %}" id="notif-{{ n.id }}"
+            style="{% if not n.is_read %}border-left:3px solid var(--teal);{% endif %}">
+            <div class="flex items-center gap-2" style="justify-content:space-between">
+                <div>
+                    <div style="font-weight:600;font-size:0.9rem;color:var(--text)">{{ n.title }}</div>
+                    <div style="font-size:0.83rem;color:var(--text2);margin-top:2px">{{ n.message }}</div>
+                    <div class="date-tag mt-1">{{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+                </div>
+                {% if not n.is_read %}
+                <button onclick="markRead({{ n.id }})" class="btn btn-secondary btn-xs">Mark read</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:32px 0;color:var(--text3)">
+        <div style="font-size:2rem;margin-bottom:8px"></div>
+        <p>No notifications yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function markRead(id) {
+        fetch(`/student/notifications/read/${id}`, { method: 'POST' })
+            .then(() => {
+                const el = document.getElementById(`notif-${id}`);
+                el.style.borderLeft = 'none';
+                el.querySelector('button')?.remove();
+            });
+    }
+    function markAllRead() {
+        fetch('/student/notifications/read_all', { method: 'POST' })
+            .then(() => location.reload());
+    }
+</script>
+{% endblock %}

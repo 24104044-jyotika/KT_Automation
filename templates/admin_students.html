@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Students – Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cert-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .cert-modal.show {
+        display: flex;
+    }
+
+    .cert-modal-content {
+        background: var(--surface);
+        border-radius: 14px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
+        position: relative;
+    }
+
+    .cert-modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border: none;
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .cert-modal-close:hover {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .cert-modal-image {
+        width: 100%;
+        height: auto;
+    }
+
+    .cert-modal-pdf {
+        width: 100%;
+        height: 80vh;
+    }
+
+    .btn-view-cert {
+        padding: 5px 12px;
+        background: #e8f5f3;
+        color: var(--teal);
+        border: 1.5px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-view-cert:hover {
+        background: var(--teal);
+        color: #fff;
+        border-color: var(--teal);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Registered Students</h1>
+    <p>All students with their contact details and application counts.</p>
+</div>
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:center;width:50px">#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Dept / Sem</th>
+                    <th>WhatsApp</th>
+                    <th style="text-align:center">Reval Apps</th>
+                    <th style="text-align:center">Photocopy Apps</th>
+                    <th style="text-align:center">Caste Certificate</th>
+                    <th style="text-align:center">Joined</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in students %}
+                <tr>
+                    <td class="fw-mono" style="color:var(--text3);text-align:center;">{{ loop.index }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div
+                                style="width:32px;height:32px;border-radius:50%;background:var(--teal);color:white;
+                                        display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0">
+                                {{ s.name[0].upper() }}
+                            </div>
+                            <strong>{{ s.name }}</strong>
+                        </div>
+                    </td>
+                    <td style="color:var(--text2)">{{ s.email }}</td>
+                    <td>
+                        {% if s.department %}
+                        <div style="font-size:0.85rem;font-weight:600;">{{ s.department }}</div>
+                        {% endif %}
+                        {% if s.semester %}
+                        <div style="font-size:0.76rem;color:var(--teal);font-weight:600;">Sem {{ s.semester }}</div>
+                        {% else %}
+                        <span style="color:var(--text3);font-size:0.82rem">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.phone %}
+                        <span style="display:inline-flex;align-items:center;gap:6px;
+                                     padding:4px 10px;background:#e8f5e9;border-radius:100px;
+                                     font-size:0.8rem;font-weight:600;color:#2e7d32">
+                            +91{{ s.phone }}
+                        </span>
+                        {% else %}
+                        <span style="color:var(--text3);font-size:0.82rem">— not set</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center"><span class="chip">{{ s.reval_apps|length }}</span></td>
+                    <td style="text-align:center"><span class="chip">{{ s.photo_apps|length }}</span></td>
+                    <td style="text-align:center;">
+                        {% if s.caste_certificate %}
+                        <button class="btn-view-cert"
+                            onclick="viewCertificate('{{ s.caste_certificate }}', '{{ s.name }}')">
+                            View
+                        </button>
+                        {% else %}
+                        <span style="color:var(--text3);font-size:0.82rem">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;color:var(--text3);">{{ s.created_at.strftime('%d %b %Y') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="empty-row">No students registered yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+<!-- Certificate View Modal -->
+<div class="cert-modal" id="certModal">
+    <div class="cert-modal-content">
+        <button class="cert-modal-close" onclick="closeCertModal()">✕</button>
+        <img class="cert-modal-image" id="certImage" style="display:none;" src="" alt="Certificate">
+        <embed class="cert-modal-pdf" id="certPdf" type="application/pdf" style="display:none;">
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function viewCertificate(filename, studentName) {
+        const modal = document.getElementById('certModal');
+        const imageEl = document.getElementById('certImage');
+        const pdfEl = document.getElementById('certPdf');
+
+        const fileExt = filename.split('.').pop().toLowerCase();
+        const certUrl = `/uploads/caste_certs/${filename}`;
+
+        if (fileExt === 'pdf') {
+            pdfEl.src = certUrl;
+            pdfEl.style.display = 'block';
+            imageEl.style.display = 'none';
+        } else {
+            imageEl.src = certUrl;
+            imageEl.alt = `${studentName}'s Caste Certificate`;
+            imageEl.style.display = 'block';
+            pdfEl.style.display = 'none';
+        }
+
+        modal.classList.add('show');
+    }
+
+    function closeCertModal() {
+        document.getElementById('certModal').classList.remove('show');
+    }
+
+    // Close modal on outside click
+    document.getElementById('certModal').addEventListener('click', (e) => {
+        if (e.target.id === 'certModal') closeCertModal();
+    });
+
+    // Keyboard: Escape to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCertModal();
+    });
+</script>
+{% endblock %}

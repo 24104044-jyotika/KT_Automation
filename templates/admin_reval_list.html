@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% block title %}Revaluation Applications – Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Marksheet Viewer Modal ───────────────────────────────────── */
+#msViewerOverlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.82);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+}
+#msViewerOverlay.open { display: flex; }
+
+#msViewerBox {
+    background: #1a2e2a;
+    border-radius: 16px;
+    width: 100%; max-width: 860px;
+    max-height: 92vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    overflow: hidden;
+    animation: popIn 0.2s ease;
+}
+@keyframes popIn {
+    from { opacity:0; transform:scale(0.94); }
+    to   { opacity:1; transform:scale(1); }
+}
+
+#msViewerHeader {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: #136b5e;
+    flex-shrink: 0;
+}
+#msViewerTitle {
+    color: white; font-weight: 700; font-size: 0.95rem;
+    display: flex; align-items: center; gap: 8px;
+}
+#msViewerClose {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: none; color: white; font-size: 1.2rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s; flex-shrink: 0;
+}
+#msViewerClose:hover { background: rgba(255,255,255,0.3); }
+
+#msViewerBody {
+    flex: 1; overflow: auto; padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 300px; background: #0f1f1c;
+}
+#msViewerImg {
+    max-width: 100%; max-height: 72vh;
+    border-radius: 8px; display: none;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+#msViewerPdf {
+    width: 100%; height: 72vh;
+    border: none; border-radius: 8px;
+    display: none;
+}
+#msViewerFooter {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: #136b5e; flex-shrink: 0;
+}
+#msViewerFooter a {
+    color: #a7f3d0; font-size: 0.82rem; text-decoration: none; font-weight: 600;
+}
+#msViewerFooter a:hover { color: white; text-decoration: underline; }
+#msViewerFooter span { color: rgba(255,255,255,0.6); font-size: 0.78rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Revaluation Applications</h1>
+    <p>Verify requests, view marksheets, update results and mark Pass/Fail.</p>
+</div>
+
+<div class="filter-bar">
+    <label>Filter:</label>
+    <a href="{{ url_for('admin_reval_list') }}"                          class="filter-btn {% if not status_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('admin_reval_list', status='Applied') }}"        class="filter-btn {% if status_filter=='Applied' %}active{% endif %}">Applied</a>
+    <a href="{{ url_for('admin_reval_list', status='Monitoring') }}"     class="filter-btn {% if status_filter=='Monitoring' %}active{% endif %}">Monitoring</a>
+    <a href="{{ url_for('admin_reval_list', status='Result Updated') }}" class="filter-btn {% if status_filter=='Result Updated' %}active{% endif %}">Result Updated</a>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Subject</th>
+                    <th>Sem / Year</th>
+                    <th>Papers</th>
+                    <th>Fee</th>
+                    <th>Marksheet</th>
+                    <th>Status</th>
+                    <th>Applied</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for app in apps %}
+            <tr>
+                <td class="fw-mono" style="color:var(--text3)">{{ app.id }}</td>
+
+                <td>
+                    <strong>{{ app.student.name }}</strong><br>
+                    <span class="fw-mono" style="font-size:0.75rem;color:var(--text3)">{{ app.prn_number }}</span>
+                    {% if app.student.phone %}
+                    <br><span style="font-size:0.72rem;color:var(--teal)"> +91{{ app.student.phone }}</span>
+                    {% endif %}
+                </td>
+
+                <td class="subject-tag">{{ app.subject_name }}</td>
+
+                <td>
+                    <span class="chip">Sem {{ app.semester }}</span><br>
+                    <span class="date-tag">{{ app.exam_year }}</span>
+                </td>
+
+                <td style="text-align:center;font-weight:700;font-family:var(--mono)">
+                    {{ app.num_papers }}
+                </td>
+
+                <td class="fw-mono" style="font-weight:700;color:var(--teal)">
+                    ₹{{ app.fee_amount }}
+                </td>
+
+                <td>
+                    {% if app.marksheet_file %}
+                        {% set ext = app.marksheet_file.rsplit('.',1)[-1].lower() %}
+                        <button
+                            onclick="openMarksheet(
+                                '{{ url_for('view_marksheet', filename=app.marksheet_file) }}',
+                                '{{ app.student.name }} – Sem {{ app.semester }} Marksheet',
+                                '{{ ext }}'
+                            )"
+                            class="btn btn-secondary btn-xs"
+                            style="display:inline-flex;align-items:center;gap:4px">
+                             View
+                        </button>
+                    {% else %}
+                        <span style="font-size:0.75rem;color:var(--danger);font-weight:600"> Missing</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% set sm = {'Applied':'badge-applied','Verified':'badge-verified',
+                                 'Monitoring':'badge-monitoring','Result Updated':'badge-updated'} %}
+                    <span class="badge {{ sm.get(app.status,'badge-applied') }}">{{ app.status }}</span>
+                </td>
+
+                <td class="date-tag">{{ app.applied_at.strftime('%d %b %Y') }}</td>
+
+                <td>
+                    {% if app.status == 'Applied' %}
+                    <button onclick="openVerifyModal({{ app.id }},'{{ app.subject_name }}')"
+                            class="btn btn-primary btn-xs">Verify</button>
+                    {% elif app.status == 'Monitoring' %}
+                    <button onclick="openResultModal({{ app.id }},'{{ app.subject_name }}')"
+                            class="btn btn-secondary btn-xs">Update Result</button>
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="10" class="empty-row">No applications found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     MARKSHEET VIEWER MODAL
+══════════════════════════════════════════════════════════════ -->
+<div id="msViewerOverlay">
+    <div id="msViewerBox">
+
+        <!-- Header -->
+        <div id="msViewerHeader">
+            <div id="msViewerTitle">
+                <span></span>
+                <span id="msViewerTitleText">Marksheet</span>
+            </div>
+            <button id="msViewerClose" onclick="closeMarksheet()" title="Close (Esc)"></button>
+        </div>
+
+        <!-- Body -->
+        <div id="msViewerBody">
+            <div id="msViewerLoading" style="color:rgba(255,255,255,0.5);font-size:0.9rem">
+                Loading marksheet...
+            </div>
+            <img  id="msViewerImg"  alt="Marksheet" />
+            <iframe id="msViewerPdf" title="Marksheet PDF"></iframe>
+        </div>
+
+        <!-- Footer -->
+        <div id="msViewerFooter">
+            <span id="msViewerFileLabel">—</span>
+            <a id="msViewerDownload" href="#" download target="_blank">⬇ Download</a>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     VERIFY MODAL
+══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="verifyModal">
+    <div class="modal">
+        <h2> Verify Application</h2>
+        <p style="color:var(--text2);font-size:0.9rem;margin-bottom:16px">
+            Subject: <strong id="verifySubject"></strong>
+        </p>
+        <form method="POST" id="verifyForm">
+            <div class="form-group">
+                <label>Admin Notes (optional)</label>
+                <textarea class="form-control" name="admin_notes"
+                          placeholder="Internal notes..." rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('verifyModal')"
+                        class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary"> Confirm & Start Monitoring</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     UPDATE RESULT MODAL
+══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="resultModal">
+    <div class="modal">
+        <h2> Update Revaluation Result</h2>
+        <p style="color:var(--text2);font-size:0.9rem;margin-bottom:16px">
+            Subject: <strong id="resultSubject"></strong>
+        </p>
+        <form method="POST" id="resultForm">
+            <div class="form-group">
+                <label>Updated Result / Grade</label>
+                <input class="form-control" type="text" name="updated_result"
+                       placeholder="e.g. Pass – 62/100  |  Grade: B" required>
+            </div>
+            <div class="form-group">
+                <label>Outcome — Did the student PASS or FAIL?</label>
+                <div style="display:flex;gap:12px;margin-top:8px">
+                    <label id="passLabel" style="flex:1;display:flex;align-items:center;gap:8px;
+                           cursor:pointer;padding:12px 16px;border-radius:10px;
+                           border:2px solid var(--border);font-weight:600;transition:all 0.2s">
+                        <input type="radio" name="result_outcome" value="pass" required
+                               onchange="selectOutcome('pass')">  Pass
+                    </label>
+                    <label id="failLabel" style="flex:1;display:flex;align-items:center;gap:8px;
+                           cursor:pointer;padding:12px 16px;border-radius:10px;
+                           border:2px solid var(--border);font-weight:600;transition:all 0.2s">
+                        <input type="radio" name="result_outcome" value="fail"
+                               onchange="selectOutcome('fail')">  Fail
+                    </label>
+                </div>
+                <div id="failWarning" style="display:none;margin-top:10px;padding:10px 14px;
+                     background:#fce8e8;border-radius:8px;font-size:0.82rem;
+                     color:var(--danger);border:1px solid #f5b8b8">
+                     Marking as <strong>Fail</strong> will automatically start sending
+                    WhatsApp + Email re-exam reminders every 3 days until student fills the form.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('resultModal')"
+                        class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary"> Save & Notify Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ── Marksheet Viewer ──────────────────────────────────────────── */
+function openMarksheet(url, title, ext) {
+    const overlay  = document.getElementById('msViewerOverlay');
+    const loading  = document.getElementById('msViewerLoading');
+    const img      = document.getElementById('msViewerImg');
+    const pdf      = document.getElementById('msViewerPdf');
+    const titleEl  = document.getElementById('msViewerTitleText');
+    const fileLabel= document.getElementById('msViewerFileLabel');
+    const dlLink   = document.getElementById('msViewerDownload');
+
+    // Reset
+    img.style.display  = 'none';
+    pdf.style.display  = 'none';
+    loading.style.display = 'block';
+    img.src = ''; pdf.src = '';
+
+    titleEl.textContent   = title;
+    fileLabel.textContent = ext.toUpperCase() + ' file';
+    dlLink.href           = url;
+
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    if (ext === 'pdf') {
+        pdf.src = url;
+        pdf.onload = () => { loading.style.display = 'none'; pdf.style.display = 'block'; };
+        pdf.style.display = 'block';
+        loading.style.display = 'none';
+    } else {
+        img.src = url;
+        img.onload  = () => { loading.style.display = 'none'; img.style.display  = 'block'; };
+        img.onerror = () => { loading.textContent = ' Could not load image.'; };
+    }
+}
+
+function closeMarksheet() {
+    document.getElementById('msViewerOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    // Clear sources so browser doesn't keep loading
+    document.getElementById('msViewerImg').src = '';
+    document.getElementById('msViewerPdf').src = '';
+}
+
+// Close on backdrop click
+document.getElementById('msViewerOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeMarksheet();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeMarksheet();
+        document.querySelectorAll('.modal-overlay.open')
+            .forEach(m => m.classList.remove('open'));
+    }
+});
+
+/* ── Other Modals ─────────────────────────────────────────────── */
+function openVerifyModal(id, subject) {
+    document.getElementById('verifySubject').textContent = subject;
+    document.getElementById('verifyForm').action = `/admin/revaluation/${id}/verify`;
+    document.getElementById('verifyModal').classList.add('open');
+}
+
+function openResultModal(id, subject) {
+    document.getElementById('resultSubject').textContent = subject;
+    document.getElementById('resultForm').action = `/admin/revaluation/${id}/update_result`;
+    // Reset outcome selection
+    document.querySelectorAll('#resultForm input[name=result_outcome]')
+        .forEach(r => r.checked = false);
+    selectOutcome(null);
+    document.getElementById('resultModal').classList.add('open');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+function selectOutcome(outcome) {
+    const pl = document.getElementById('passLabel');
+    const fl = document.getElementById('failLabel');
+    const fw = document.getElementById('failWarning');
+    pl.style.background  = outcome==='pass' ? '#e8f7ee' : '';
+    pl.style.borderColor = outcome==='pass' ? 'var(--success)' : 'var(--border)';
+    fl.style.background  = outcome==='fail' ? '#fce8e8' : '';
+    fl.style.borderColor = outcome==='fail' ? 'var(--danger)'  : 'var(--border)';
+    fw.style.display     = outcome==='fail' ? 'block' : 'none';
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m =>
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
+);
+</script>
+{% endblock %}

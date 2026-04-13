@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Photocopy Applications – Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1> Photocopy Applications</h1>
+    <p>Verify and track photocopy requests.</p>
+</div>
+
+<div class="filter-bar">
+    <label>Filter:</label>
+    <a href="{{ url_for('admin_photo_list') }}" class="filter-btn {% if not status_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('admin_photo_list', status='Applied') }}" class="filter-btn {% if status_filter=='Applied' %}active{% endif %}">Applied</a>
+    <a href="{{ url_for('admin_photo_list', status='In Progress') }}" class="filter-btn {% if status_filter=='In Progress' %}active{% endif %}">In Progress</a>
+    <a href="{{ url_for('admin_photo_list', status='Delivered') }}" class="filter-btn {% if status_filter=='Delivered' %}active{% endif %}">Delivered</a>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>PRN</th>
+                    <th>Subject</th>
+                    <th>Sem / Year</th>
+                    <th>Status</th>
+                    <th>Expected By</th>
+                    <th>Applied</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in apps %}
+                <tr>
+                    <td class="fw-mono" style="color:var(--text3)">{{ app.id }}</td>
+                    <td><strong>{{ app.student.name }}</strong><br><span style="font-size:0.78rem;color:var(--text3)">{{ app.student.email }}</span></td>
+                    <td class="fw-mono">{{ app.prn_number }}</td>
+                    <td class="subject-tag">{{ app.subject_name }}</td>
+                    <td><span class="chip">Sem {{ app.semester }}</span> {{ app.exam_year }}</td>
+                    <td>
+                        {% set sm={'Applied':'badge-applied','In Progress':'badge-progress','Delivered':'badge-delivered'} %}
+                        <span class="badge {{ sm.get(app.status,'badge-applied') }}">{{ app.status }}</span>
+                    </td>
+                    <td class="date-tag">{{ app.expected_by.strftime('%d %b %Y') if app.expected_by else '—' }}</td>
+                    <td class="date-tag">{{ app.applied_at.strftime('%d %b %Y') }}</td>
+                    <td>
+                        {% if app.status == 'Applied' %}
+                        <button onclick="openVerifyModal({{ app.id }}, '{{ app.subject_name }}')" class="btn btn-primary btn-xs">Verify</button>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="empty-row">No applications found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Verify Modal -->
+<div class="modal-overlay" id="verifyModal">
+    <div class="modal">
+        <h2> Verify Photocopy Request</h2>
+        <p style="color:var(--text2);font-size:0.9rem;margin-bottom:16px">Verifying photocopy for: <strong id="verifySubject"></strong></p>
+        <form method="POST" id="verifyForm">
+            <div class="form-group">
+                <label>Admin Notes (optional)</label>
+                <textarea class="form-control" name="admin_notes" placeholder="Any notes for this request..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal('verifyModal')" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Confirm & Start Processing</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openVerifyModal(id, subject) {
+    document.getElementById('verifySubject').textContent = subject;
+    document.getElementById('verifyForm').action = `/admin/photocopy/${id}/verify`;
+    document.getElementById('verifyModal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+</script>
+{% endblock %}

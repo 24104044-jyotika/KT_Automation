@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}My Profile – MU Portal{% endblock %}
+{% block content %}
+<div style="max-width:560px;margin:0 auto">
+    <div class="page-header">
+        <h1> My Profile</h1>
+        <p>Update your contact details for Email & WhatsApp notifications.</p>
+    </div>
+
+    <div class="card">
+        <!-- Avatar -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;
+                    padding-bottom:20px;border-bottom:1px solid var(--border)">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--teal);
+                        color:white;display:flex;align-items:center;justify-content:center;
+                        font-size:1.6rem;font-weight:700;flex-shrink:0">
+                {{ current_user.name[0].upper() }}
+            </div>
+            <div>
+                <div style="font-size:1.1rem;font-weight:700">{{ current_user.name }}</div>
+                <div style="color:var(--text3);font-size:0.85rem">{{ current_user.email }}</div>
+                <span class="badge badge-student" style="margin-top:4px">Student</span>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('student_profile') }}">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input class="form-control" type="text" value="{{ current_user.name }}" disabled
+                       style="background:var(--bg2);cursor:not-allowed;opacity:0.7">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input class="form-control" type="email" value="{{ current_user.email }}" disabled
+                       style="background:var(--bg2);cursor:not-allowed;opacity:0.7">
+            </div>
+            <div class="form-group">
+                <label for="phone">
+                    WhatsApp Number
+                    <span style="font-weight:400;color:var(--text3);font-size:0.8rem">(editable)</span>
+                </label>
+                <div style="position:relative">
+                    <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:0.9rem;color:var(--text3)"> +91</span>
+                    <input class="form-control" type="tel" id="phone" name="phone"
+                           value="{{ current_user.phone or '' }}"
+                           placeholder="9876543210" maxlength="10"
+                           style="padding-left:68px">
+                </div>
+                <div style="font-size:0.78rem;color:var(--text3);margin-top:4px">
+                    Notifications will be sent to this WhatsApp number.
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="department">Department</label>
+                <select class="form-control" id="department" name="department">
+                    <option value="">Select department</option>
+                    {% for dept in ['Information Technology','Computer Engineering',
+                       'Electronics & Telecommunication','Mechanical Engineering',
+                       'Civil Engineering','Chemical Engineering','Other'] %}
+                    <option value="{{ dept }}" {% if current_user.department == dept %}selected{% endif %}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="semester">Current Semester</label>
+                <select class="form-control" id="semester" name="semester">
+                    <option value="">Select semester</option>
+                    {% for s in range(1,9) %}
+                    <option value="{{ s }}" {% if current_user.semester == s|string %}selected{% endif %}>Semester {{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary"> Save Changes</button>
+        </form>
+    </div>
+
+    <!-- Notification Status -->
+    <div class="card mt-3">
+        <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px"> Notification Channels</h2>
+        <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:14px 16px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:1.3rem"></span>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">Email</div>
+                        <div style="font-size:0.8rem;color:var(--text3)">{{ current_user.email }}</div>
+                    </div>
+                </div>
+                <span class="badge badge-updated"> Active</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:14px 16px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:1.3rem"></span>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">WhatsApp</div>
+                        <div style="font-size:0.8rem;color:var(--text3)">
+                            {% if current_user.phone %}+91 {{ current_user.phone }}{% else %}Not set{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if current_user.phone %}
+                <span class="badge badge-updated"> Active</span>
+                {% else %}
+                <span class="badge badge-applied"> Not set</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if current_user.phone %}
+        
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

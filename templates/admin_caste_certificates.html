@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% block title %}Caste Certificates – Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cert-filter-bar {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 16px 20px;
+        background: var(--bg2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .cert-search {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .cert-search input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.88rem;
+    }
+
+    .cert-search input:focus {
+        border-color: var(--teal);
+        outline: none;
+    }
+
+    .cert-count {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text2);
+        padding: 8px 16px;
+        background: var(--surface);
+        border-radius: 8px;
+    }
+
+    .cert-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .cert-card {
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+        transition: all 0.2s;
+    }
+
+    .cert-card:hover {
+        border-color: var(--teal);
+        box-shadow: 0 4px 12px rgba(26, 138, 122, 0.1);
+    }
+
+    .cert-card-header {
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .cert-student-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .cert-student-email {
+        font-size: 0.75rem;
+        color: var(--text3);
+        margin-top: 3px;
+        word-break: break-all;
+    }
+
+    .cert-card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 14px;
+        font-size: 0.82rem;
+    }
+
+    .cert-info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .cert-info-label {
+        color: var(--text3);
+        font-weight: 600;
+    }
+
+    .cert-info-value {
+        color: var(--text);
+        font-weight: 500;
+    }
+
+    .cert-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-view,
+    .btn-download {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 7px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .btn-view {
+        background: #e8f5f3;
+        color: var(--teal);
+        border: 1.5px solid var(--border);
+    }
+
+    .btn-view:hover {
+        background: var(--teal);
+        color: #fff;
+        border-color: var(--teal);
+    }
+
+    .btn-download {
+        background: var(--teal);
+        color: #fff;
+        border: 1.5px solid var(--teal);
+    }
+
+    .btn-download:hover {
+        opacity: 0.9;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        color: var(--text3);
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    .empty-state-text {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text2);
+        margin-bottom: 8px;
+    }
+
+    .cert-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .cert-modal.show {
+        display: flex;
+    }
+
+    .cert-modal-content {
+        background: var(--surface);
+        border-radius: 14px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
+        position: relative;
+    }
+
+    .cert-modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border: none;
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .cert-modal-close:hover {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .cert-modal-image {
+        width: 100%;
+        height: auto;
+    }
+
+    .cert-modal-pdf {
+        width: 100%;
+        height: 80vh;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1> Caste Certificates</h1>
+    <p>View and download caste certificates uploaded by students during registration.</p>
+</div>
+
+<div class="cert-filter-bar">
+    <div class="cert-search">
+        <input type="text" id="searchInput" placeholder="Search by name or email..." onkeyup="filterCertificates()">
+    </div>
+    <div class="cert-count">
+        <span>Total: <strong id="cert-total">{{ students|length }}</strong></span>
+    </div>
+</div>
+
+<div class="cert-grid" id="certsContainer">
+    {% if students %}
+    {% for student in students %}
+    <div class="cert-card" data-name="{{student.name}}" data-email="{{student.email}}">
+        <div class="cert-card-header">
+            <h3 class="cert-student-name">{{ student.name }}</h3>
+            <p class="cert-student-email">{{ student.email }}</p>
+        </div>
+        <div class="cert-card-info">
+            <div class="cert-info-row">
+                <span class="cert-info-label">Department:</span>
+                <span class="cert-info-value">{{ student.department or '—' }}</span>
+            </div>
+            <div class="cert-info-row">
+                <span class="cert-info-label">Semester:</span>
+                <span class="cert-info-value">{{ student.semester or '—' }}</span>
+            </div>
+            <div class="cert-info-row">
+                <span class="cert-info-label">Uploaded:</span>
+                <span class="cert-info-value">{{ student.created_at.strftime('%d %b %Y') }}</span>
+            </div>
+        </div>
+        <div class="cert-actions">
+            <button class="btn-view" onclick="viewCertificate('{{ student.caste_certificate }}', '{{ student.name }}')">
+                View
+            </button>
+            <a href="{{ url_for('download_caste_certificate', student_id=student.id) }}" class="btn-download">
+                Download
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state" style="grid-column: 1/-1;">
+        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-text">No caste certificates uploaded yet</div>
+        <div style="font-size:0.85rem;color:var(--text3);">Students who uploaded certificates during registration will
+            appear here.</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Certificate View Modal -->
+<div class="cert-modal" id="certModal">
+    <div class="cert-modal-content">
+        <button class="cert-modal-close" onclick="closeCertModal()">✕</button>
+        <img class="cert-modal-image" id="certImage" style="display:none;" src="" alt="Certificate">
+        <embed class="cert-modal-pdf" id="certPdf" type="application/pdf" style="display:none;">
+    </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:28px;right:28px;z-index:9999;background:#1a8a7a;
+    color:#fff;padding:14px 22px;border-radius:12px;font-size:0.88rem;font-weight:600;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity 0.3s;">
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const UPLOAD_FOLDER = '{{ config.UPLOAD_FOLDER }}';
+
+    function filterCertificates() {
+        const searchVal = document.getElementById('searchInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.cert-card');
+        let visible = 0;
+
+        cards.forEach(card => {
+            const name = card.dataset.name.toLowerCase();
+            const email = card.dataset.email.toLowerCase();
+            const matches = name.includes(searchVal) || email.includes(searchVal);
+            card.style.display = matches ? '' : 'none';
+            if (matches) visible++;
+        });
+
+        document.getElementById('cert-total').textContent = visible;
+    }
+
+    function viewCertificate(filename, studentName) {
+        const modal = document.getElementById('certModal');
+        const imageEl = document.getElementById('certImage');
+        const pdfEl = document.getElementById('certPdf');
+
+        const fileExt = filename.split('.').pop().toLowerCase();
+        const certUrl = `/uploads/caste_certs/${filename}`;
+
+        if (fileExt === 'pdf') {
+            pdfEl.src = certUrl;
+            pdfEl.style.display = 'block';
+            imageEl.style.display = 'none';
+        } else {
+            imageEl.src = certUrl;
+            imageEl.alt = `${studentName}'s Caste Certificate`;
+            imageEl.style.display = 'block';
+            pdfEl.style.display = 'none';
+        }
+
+        modal.classList.add('show');
+    }
+
+    function closeCertModal() {
+        document.getElementById('certModal').classList.remove('show');
+    }
+
+    // Close modal on outside click
+    document.getElementById('certModal').addEventListener('click', (e) => {
+        if (e.target.id === 'certModal') closeCertModal();
+    });
+
+    // Keyboard: Escape to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCertModal();
+    });
+</script>
+{% endblock %}

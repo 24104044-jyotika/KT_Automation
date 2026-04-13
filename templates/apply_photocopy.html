@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Apply for Photocopy – MU Portal{% endblock %}
+{% block content %}
+<div style="max-width:580px;margin:0 auto">
+    <div class="page-header">
+        <h1>Apply for Photocopy</h1>
+        <p>Request a photocopy of your answer sheet.</p>
+    </div>
+
+    <!-- Fee Banner -->
+    <div style="background:linear-gradient(135deg,#c05621,#92400e);border-radius:14px;
+                padding:20px 28px;margin-bottom:24px;color:white;display:flex;
+                align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+            <div style="font-size:0.8rem;opacity:0.85;font-weight:600;text-transform:uppercase;letter-spacing:1px">Fee Structure</div>
+            <div style="font-size:1.8rem;font-weight:700;margin-top:2px">₹{{ PHOTO_FEE }} per paper</div>
+            <div style="font-size:0.82rem;opacity:0.8;margin-top:2px">Fee calculated automatically</div>
+        </div>
+        <div style="font-size:2.5rem"></div>
+    </div>
+
+    <div class="card">
+        <form method="POST" action="{{ url_for('apply_photocopy') }}">
+
+            <!-- Semester + Exam Year -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Semester</label>
+                    <select class="form-control" name="semester" id="semesterSelect" required onchange="loadSubjects()">
+                        <option value="">Select Semester</option>
+                        {% for i in range(1,9) %}
+                        <option value="{{ i }}">Semester {{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Exam Year</label>
+                    <select class="form-control" name="exam_year" required>
+                        <option value="">Select Year</option>
+                        {% for y in ['2025-26','2024-25','2023-24','2022-23','2021-22'] %}
+                        <option value="{{ y }}">{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Subject — changes based on semester -->
+            <div class="form-group">
+                <label>Subject Name</label>
+                <select class="form-control" name="subject_name" id="subjectSelect" required>
+                    <option value="">— Select semester first —</option>
+                </select>
+                <input class="form-control" type="text" id="subjectOther" name="subject_name_other"
+                       placeholder="Enter subject name manually"
+                       style="display:none;margin-top:8px">
+                <div style="font-size:0.75rem;color:var(--text3);margin-top:5px">
+                    Can't find your subject? Choose <em>Other / Not listed</em> and type it manually.
+                </div>
+            </div>
+
+            <!-- Number of papers -->
+            <div class="form-group">
+                <label>Number of Papers</label>
+                <select class="form-control" name="num_papers" id="numPapers" required onchange="calcFee()">
+                    {% for i in range(1,7) %}
+                    <option value="{{ i }}">{{ i }} paper{% if i > 1 %}s{% endif %} — ₹{{ i * PHOTO_FEE }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>PRN Number</label>
+                <input class="form-control" type="text" name="prn_number"
+                       placeholder="e.g. 2021016400123456" required>
+            </div>
+
+            <div style="display:flex;gap:12px">
+                <button type="submit" class="btn btn-primary">Submit Request</button>
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div style="margin-top:20px;padding:18px 22px;background:#fff3e0;border-radius:var(--radius-sm);border:1px solid #fde68a">
+        <h3 style="font-size:0.9rem;font-weight:700;color:#92400e;margin-bottom:8px"> Photocopy Process</h3>
+        <ol style="font-size:0.83rem;color:var(--text2);line-height:1.8;padding-left:18px">
+            <li>Submit request</li>
+            <li>Pay <strong>₹200 per paper</strong> at the exam section</li>
+            <li>Admin verifies request</li>
+            <li>Photocopy processed in 15–20 days</li>
+            <li>You receive Email + WhatsApp reminder before delivery</li>
+            <li>Mark as received on the portal once delivered</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fee = {{ PHOTO_FEE }};
+const semesterSubjects = {{ SEMESTER_SUBJECTS | tojson }};
+
+function loadSubjects() {
+    const sem = document.getElementById('semesterSelect').value;
+    const sel = document.getElementById('subjectSelect');
+    const otherInput = document.getElementById('subjectOther');
+    sel.innerHTML = '';
+
+    if (!sem) {
+        sel.innerHTML = '<option value="">— Select semester first —</option>';
+        otherInput.style.display = 'none';
+        return;
+    }
+
+    const subjects = semesterSubjects[sem] || [];
+    sel.innerHTML = '<option value="">Select subject</option>';
+    subjects.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = s;
+        sel.appendChild(opt);
+    });
+    const other = document.createElement('option');
+    other.value = '__other__'; other.textContent = 'Other / Not listed';
+    sel.appendChild(other);
+
+    otherInput.style.display = 'none';
+    otherInput.removeAttribute('required');
+    sel.onchange = handleSubjectChange;
+}
+
+function handleSubjectChange() {
+    const sel = document.getElementById('subjectSelect');
+    const otherInput = document.getElementById('subjectOther');
+    if (sel.value === '__other__') {
+        otherInput.style.display = 'block';
+        otherInput.setAttribute('required', 'required');
+    } else {
+        otherInput.style.display = 'none';
+        otherInput.removeAttribute('required');
+    }
+}
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    const sel = document.getElementById('subjectSelect');
+    const otherInput = document.getElementById('subjectOther');
+    if (sel.value === '__other__') {
+        const manual = otherInput.value.trim();
+        if (!manual) { e.preventDefault(); otherInput.focus(); return; }
+        const opt = document.createElement('option');
+        opt.value = manual; opt.textContent = manual; opt.selected = true;
+        sel.appendChild(opt);
+        sel.value = manual;
+        otherInput.name = '';
+    }
+});
+
+function calcFee() {
+    const n = parseInt(document.getElementById('numPapers').value) || 1;
+    if (document.getElementById('feeAmt'))
+        document.getElementById('feeAmt').textContent = '₹' + (n * fee);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MU Portal{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="{% if current_user.is_authenticated %}has-sidebar{% endif %}">
+
+    {% if current_user.is_authenticated %}
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-brand">
+            <div class="sidebar-logos">
+                <img src="{{ url_for('static', filename='apsit.png') }}" alt="APSIT" class="sidebar-logo">
+                <img src="{{ url_for('static', filename='mumbai_university.png') }}" alt="MU" class="sidebar-logo">
+            </div>
+            <div class="sidebar-title">MU <span class="sidebar-accent">Portal</span></div>
+            <div class="sidebar-sub">Automation System</div>
+
+        </div>
+
+        <div class="sidebar-user">
+            <a href="{% if current_user.role=='student' %}{{ url_for('student_profile') }}{% else %}#{% endif %}"
+                style="text-decoration:none;display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+                <div class="sidebar-avatar">{{ current_user.name[0].upper() }}</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">{{ current_user.name }}</div>
+                    <div class="sidebar-user-role">{% if current_user.role == 'admin' %}Administrator{% else %}Student{%
+                        endif %}</div>
+                </div>
+            </a>
+            {% if current_user.role == 'admin' %}<span class="role-badge admin" style="flex-shrink:0">Admin</span>{%
+            endif %}
+        </div>
+
+        <nav class="sidebar-nav">
+            {% if current_user.role == 'admin' %}
+            <div class="sidebar-section-label">Main</div>
+            <a href="{{ url_for('admin_dashboard') }}"
+                class="sidebar-link {% if request.endpoint=='admin_dashboard' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('result_analytics') }}"
+                class="sidebar-link {% if request.endpoint=='result_analytics' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>PDF Analytics</span>
+            </a>
+            <div class="sidebar-section-label">Applications</div>
+            <a href="{{ url_for('admin_reval_list') }}"
+                class="sidebar-link {% if request.endpoint=='admin_reval_list' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Revaluation</span>
+            </a>
+            <a href="{{ url_for('admin_photo_list') }}"
+                class="sidebar-link {% if request.endpoint=='admin_photo_list' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Photocopy</span>
+            </a>
+            <a href="{{ url_for('admin_rexam_list') }}"
+                class="sidebar-link {% if request.endpoint=='admin_rexam_list' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Re-Exam</span>
+            </a>
+            <div class="sidebar-section-label">Management</div>
+            <a href="{{ url_for('admin_students') }}"
+                class="sidebar-link {% if request.endpoint=='admin_students' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Students</span>
+            </a>
+            <a href="{{ url_for('failed_students_list') }}"
+                class="sidebar-link {% if request.endpoint=='failed_students_list' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Failed Records</span>
+            </a>
+            {% else %}
+            <div class="sidebar-section-label">My Portal</div>
+            <a href="{{ url_for('student_dashboard') }}"
+                class="sidebar-link {% if request.endpoint=='student_dashboard' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('student_profile') }}"
+                class="sidebar-link {% if request.endpoint=='student_profile' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>My Profile</span>
+            </a>
+            <div class="sidebar-section-label">Applications</div>
+            <a href="{{ url_for('apply_revaluation') }}"
+                class="sidebar-link {% if request.endpoint=='apply_revaluation' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Revaluation</span>
+            </a>
+            <a href="{{ url_for('apply_photocopy') }}"
+                class="sidebar-link {% if request.endpoint=='apply_photocopy' %}active{% endif %}">
+                <span class="sidebar-icon"></span><span>Photocopy</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            {% if current_user.role == 'student' %}
+            {% if not current_user.phone %}
+            <a href="{{ url_for('student_profile') }}" class="sidebar-wa-badge missing"> Add WhatsApp</a>
+            {% else %}
+
+            {% endif %}
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="sidebar-logout"><span></span> Logout</a>
+        </div>
+    </aside>
+
+    <header class="topbar">
+        <button class="topbar-hamburger" id="sidebarToggle" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title">MU Automation Portal</div>
+        {% if current_user.role == 'student' %}
+        {% set unread_count = current_user.notifications|selectattr('is_read','equalto',False)|list|length %}
+        <div class="notif-bell" id="notifBell" title="Notifications" style="margin-left:auto">
+            <span>🔔</span>
+            {% if unread_count > 0 %}<span class="notif-badge">{{ unread_count }}</span>{% endif %}
+        </div>
+        {% endif %}
+    </header>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% endif %}
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            <span>{{ '' if category=='success' else '' if category=='error' else 'ℹ' }}</span>
+            {{ message }}
+        </div>
+        {% endfor %}{% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% if current_user.is_authenticated %}
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const toggle = document.getElementById('sidebarToggle');
+        function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('open'); }
+        function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+        toggle?.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+        overlay?.addEventListener('click', closeSidebar);
+    </script>
+    {% endif %}
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

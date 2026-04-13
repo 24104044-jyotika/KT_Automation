@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification - MU Automation Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        .otp-input-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 24px 0;
+            flex-wrap: wrap;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            text-align: center;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s ease;
+        }
+
+        .otp-input:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(26, 138, 122, 0.1);
+        }
+
+        .otp-message {
+            text-align: center;
+            color: var(--text3);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .resend-otp {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+        }
+
+        .resend-otp a {
+            color: var(--teal);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .resend-otp a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-bg-shape s1"></div>
+        <div class="auth-bg-shape s2"></div>
+        <div class="auth-card">
+            <div class="auth-logos">
+                <div class="auth-logo-placeholder"><img src="{{ url_for('static', filename='apsit.png') }}"></div>
+                <div style="text-align:center">
+                    <div
+                        style="font-size:0.7rem;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase">
+                        University of Mumbai</div>
+                    <div style="font-size:0.75rem;font-weight:700;color:var(--teal)">Student Portal</div>
+                </div>
+                <div class="auth-logo-placeholder"><img src="{{ url_for('static', filename='mumbai_university.png') }}">
+                </div>
+            </div>
+
+            <h1>Verify Your Identity</h1>
+            <p class="subtitle">Enter the OTP sent to your email</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}" style="margin-bottom:16px"><span>{{ '' if cat=='success' else ''
+                    }}</span>{{ msg }}</div>
+            {% endfor %}{% endif %}
+            {% endwith %}
+
+            <div class="otp-message">
+                <p>A 6-digit verification code has been sent to:<br><strong>{{ email }}</strong></p>
+            </div>
+
+            <form method="POST" action="{{ url_for('verify_otp') }}">
+                <div class="form-group">
+                    <label for="otp">Enter OTP Code</label>
+                    <input class="form-control" type="text" id="otp" name="otp" placeholder="000000" maxlength="6"
+                        inputmode="numeric" pattern="[0-9]{6}" required autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary">Verify OTP</button>
+            </form>
+
+            <div class="auth-footer" style="margin-top:16px">
+                <a href="{{ url_for('login') }}" style="color:var(--text3);font-size:0.82rem">← Back to Login</a>
+            </div>
+
+            <div class="resend-otp">
+                <p style="color:var(--text3);margin-bottom:8px">Didn't receive the code?</p>
+                <a href="{{ url_for('login') }}">Request a new login</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

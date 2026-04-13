@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block title %}Failed Student Records – MU Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Stats banner ── */
+    .fs-banner {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+    .fs-chip {
+        flex: 1;
+        min-width: 160px;
+        border-radius: 14px;
+        padding: 18px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border: 1.5px solid;
+    }
+
+    .fs-chip.red {
+        background: #fce8e8;
+        border-color: #f5b8b8;
+    }
+
+    .fs-chip.teal {
+        background: #e8f5f3;
+        border-color: #7fcfc8;
+    }
+
+    .fs-chip.blue {
+        background: #e8f0ff;
+        border-color: #c0c8f8;
+    }
+
+    .fs-num {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .fs-label {
+        font-size: 0.76rem;
+        font-weight: 600;
+        color: var(--text2);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .red .fs-num {
+        color: var(--danger);
+    }
+
+    .teal .fs-num {
+        color: #136b5e;
+    }
+
+    .blue .fs-num {
+        color: #2563eb;
+    }
+
+    /* ── Filter bar ── */
+    .filter-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        padding: 16px 20px;
+        background: var(--bg2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-bottom: 20px;
+    }
+
+    .filter-row label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text2);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: block;
+        margin-bottom: 3px;
+    }
+
+    .filter-row select,
+    .filter-row input {
+        padding: 7px 10px;
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        font-family: inherit;
+        font-size: 0.88rem;
+        background: #fff;
+        color: var(--text);
+        outline: none;
+    }
+
+    .filter-row select:focus,
+    .filter-row input:focus {
+        border-color: var(--teal);
+    }
+
+    /* ── Table tweaks ── */
+    .filed-yes {
+        color: #136b5e;
+        font-weight: 700;
+    }
+
+    .filed-no {
+        color: var(--danger);
+        font-weight: 700;
+    }
+
+    .toggle-btn {
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border);
+        font-family: inherit;
+        font-size: 0.76rem;
+        font-weight: 700;
+        cursor: pointer;
+        background: #fff;
+        transition: all 0.15s;
+    }
+
+    .toggle-btn.filed {
+        border-color: #7fcfc8;
+        color: #136b5e;
+        background: #e8f5f3;
+    }
+
+    .toggle-btn.notfiled {
+        border-color: #f5b8b8;
+        color: var(--danger);
+        background: #fce8e8;
+    }
+
+    .toggle-btn:hover {
+        opacity: 0.8;
+    }
+
+    .mail-count {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: var(--text3);
+    }
+
+    /* ── Bulk mail bar ── */
+    .bulk-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 16px 22px;
+        background: linear-gradient(135deg, #e8f0ff, #f0f4ff);
+        border: 1.5px solid #c0c8f8;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    .bulk-bar h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #2563eb;
+        flex: 1;
+    }
+
+    .btn-send {
+        padding: 9px 22px;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.88rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-send:hover {
+        background: #1d4ed8;
+    }
+
+    .btn-send:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* group header rows */
+    .sem-group-row td {
+        background: linear-gradient(90deg, #e8f5f3, #f5f8f7);
+        font-weight: 700;
+        color: #136b5e;
+        font-size: 0.82rem;
+        letter-spacing: 0.04em;
+        padding: 7px 14px;
+        border-top: 2px solid #7fcfc8;
+    }
+
+    /* toast */
+    #toast {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        z-index: 9999;
+        background: #1a8a7a;
+        color: #fff;
+        padding: 14px 22px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    #toast.show {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    #toast.error {
+        background: #e05252;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+            <h1> Failed Student Records</h1>
+            <p>A.P. Shah Institute of Technology — saved from MU result PDFs. Manage by Semester / Subject and send
+                exam-form reminders.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <a href="{{ url_for('export_failed_students_excel',
+                        semester=sem_filter, subject=subj_filter,
+                        exam_year=year_filter, filed=filed_filter) }}" class="btn btn-secondary btn-sm"
+                style="background:#136b5e;color:#fff;border-color:#136b5e;">
+                Export Excel
+            </a>
+            <a href="{{ url_for('result_analytics') }}" class="btn btn-secondary btn-sm">⬆ Upload New PDF</a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="fs-banner">
+    <div class="fs-chip red">
+        <span class="fs-num">{{ total }}</span>
+        <span class="fs-label">Total Failed Records</span>
+    </div>
+    <div class="fs-chip teal">
+        <span class="fs-num">{{ filed }}</span>
+        <span class="fs-label">Exam Form Filed</span>
+    </div>
+    <div class="fs-chip blue">
+        <span class="fs-num">{{ not_filed }}</span>
+        <span class="fs-label">Form NOT Filed</span>
+    </div>
+</div>
+
+<!-- Bulk mail bar -->
+{% if not_filed > 0 %}
+<div class="bulk-bar">
+    <h3> {{ not_filed }} student(s) have NOT filed the exam form</h3>
+    <button class="btn-send" id="btnBulkMail" onclick="sendBulk('{{ sem_filter }}', '{{ subj_filter }}')">
+        Send Reminder Email to All Non-Filers
+    </button>
+</div>
+{% else %}
+<div class="bulk-bar" style="background:#e8f5f3;border-color:#7fcfc8;">
+    <h3 style="color:#136b5e;"> All students in the current view have filed their exam forms!</h3>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<form method="GET" action="{{ url_for('failed_students_list') }}">
+    <div class="filter-row">
+        <div>
+            <label>Semester</label>
+            <select name="semester" onchange="this.form.submit()">
+                <option value="">All Semesters</option>
+                {% for s in semesters %}
+                <option value="{{ s }}" {% if sem_filter==s %}selected{% endif %}>Sem {{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Exam Year</label>
+            <select name="exam_year" onchange="this.form.submit()">
+                <option value="">All Years</option>
+                {% for y in exam_years %}
+                <option value="{{ y }}" {% if year_filter==y %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Subject</label>
+            <input type="text" name="subject" placeholder="Filter by subject…" value="{{ subj_filter }}">
+        </div>
+        <div>
+            <label>Form Status</label>
+            <select name="filed" onchange="this.form.submit()">
+                <option value="" {% if not filed_filter %}selected{% endif %}>All</option>
+                <option value="yes" {% if filed_filter=='yes' %}selected{% endif %}> Filed</option>
+                <option value="no" {% if filed_filter=='no' %}selected{% endif %}> Not Filed</option>
+            </select>
+        </div>
+        <div>
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        </div>
+        {% if sem_filter or subj_filter or filed_filter or year_filter %}
+        <div>
+            <label>&nbsp;</label>
+            <a href="{{ url_for('failed_students_list') }}" class="btn btn-secondary btn-sm">Clear</a>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Records Table -->
+<div class="card" style="padding:0;overflow:hidden;">
+    {% if records %}
+    <div class="table-wrap">
+        <table style="width:100%;border-collapse:collapse;font-size:0.86rem;">
+            <thead>
+                <tr>
+                    <th style="padding:12px 14px;">#</th>
+                    <th style="padding:12px 14px;">Student Name</th>
+                    <th style="padding:12px 14px;">Seat / PRN</th>
+                    <th style="padding:12px 14px;">Semester</th>
+                    <th style="padding:12px 14px;">Exam Year</th>
+                    <th style="padding:12px 14px;">Subject</th>
+                    <th style="padding:12px 14px;text-align:center;">Marks</th>
+                    <th style="padding:12px 14px;text-align:center;">Email on Record</th>
+                    <th style="padding:12px 14px;text-align:center;">Exam Form</th>
+                    <th style="padding:12px 14px;text-align:center;">Mails Sent</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(last_sem='') %}
+                {% for rec in records %}
+                {% if rec.semester != ns.last_sem %}
+                {% set ns.last_sem = rec.semester %}
+                <tr class="sem-group-row">
+                    <td colspan="10"> Semester {{ rec.semester }}</td>
+                </tr>
+                {% endif %}
+                <tr style="border-top:1px solid var(--border);" id="row-{{ rec.id }}">
+                    <td style="padding:10px 14px;color:var(--text3);">{{ loop.index }}</td>
+                    <td style="padding:10px 14px;font-weight:700;">
+                        {{ rec.student_name }}
+                        {% if rec.user %}<div style="font-size:0.73rem;color:var(--teal);margin-top:1px;"> Linked: {{
+                            rec.user.email }}</div>{% endif %}
+                    </td>
+                    <td
+                        style="padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--text2);">
+                        {{ rec.seat_number or '—' }}</td>
+                    <td style="padding:10px 14px;">Sem {{ rec.semester }}</td>
+                    <td style="padding:10px 14px;font-size:0.82rem;color:var(--text2);">{{ rec.exam_year or '—' }}</td>
+                    <td style="padding:10px 14px;"><span class="subject-tag">{{ rec.subject_name }}</span></td>
+                    <td style="padding:10px 14px;text-align:center;font-family:'JetBrains Mono',monospace;">
+                        {{ rec.marks }}{% if rec.grade %} / {{ rec.grade }}{% endif %}
+                    </td>
+                    <td style="padding:10px 14px;text-align:center;font-size:0.8rem;">
+                        {% set email_val = rec.email or (rec.user.email if rec.user else '') %}
+                        {% if email_val %}
+                        <span style="color:#136b5e;">{{ email_val }}</span>
+                        {% else %}
+                        <span style="color:var(--text3);">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px 14px;text-align:center;">
+                        <button class="toggle-btn {% if rec.exam_form_filed %}filed{% else %}notfiled{% endif %}"
+                            id="tbtn-{{ rec.id }}" onclick="toggleFiled({{ rec.id }})">
+                            {% if rec.exam_form_filed %} Filed{% else %} Not Filed{% endif %}
+                        </button>
+                        {% if rec.form_filed_at %}
+                        <div style="font-size:0.7rem;color:var(--text3);margin-top:3px;">{{
+                            rec.form_filed_at.strftime('%d %b %Y') }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px 14px;text-align:center;" class="mail-count" id="mc-{{ rec.id }}">
+                        {{ rec.mail_sent_count }}
+                        {% if rec.last_mail_sent %}
+                        <div style="font-size:0.68rem;color:var(--text3);">{{ rec.last_mail_sent.strftime('%d %b') }}
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:60px 24px;">
+        <div class="empty-icon"></div>
+        <div style="font-size:1rem;font-weight:600;color:var(--text2);">No records found</div>
+        <div style="font-size:0.85rem;color:var(--text3);margin-top:6px;">Upload a result PDF from the Analytics page to
+            populate records.</div>
+        <a href="{{ url_for('result_analytics') }}" class="btn btn-primary btn-sm" style="margin-top:16px;">Upload
+            PDF</a>
+    </div>
+    {% endif %}
+</div>
+
+<div id="toast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showToast(msg, isError = false) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'show' + (isError ? ' error' : '');
+        setTimeout(() => t.className = '', 4500);
+    }
+
+    async function toggleFiled(id) {
+        const res = await fetch(`/admin/failed-students/${id}/toggle-filed`, { method: 'POST' });
+        const data = await res.json();
+        if (!data.ok) { showToast('Failed to update record', true); return; }
+        const btn = document.getElementById('tbtn-' + id);
+        if (data.filed) {
+            btn.textContent = ' Filed';
+            btn.className = 'toggle-btn filed';
+        } else {
+            btn.textContent = ' Not Filed';
+            btn.className = 'toggle-btn notfiled';
+        }
+        showToast(data.filed ? ' Marked as filed!' : '↩ Marked as not filed.');
+    }
+
+    async function sendBulk(semester, subject) {
+        const btn = document.getElementById('btnBulkMail');
+        if (!confirm(`Send exam-form reminder emails to all non-filers${semester ? ' in Sem ' + semester : ''}${subject ? ' for "' + subject + '"' : ''}?\n\nThis will email every student who hasn't filed yet.`)) return;
+        btn.disabled = true;
+        btn.innerHTML = ' Sending…';
+        const res = await fetch('/admin/failed-students/send-reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ semester, subject })
+        });
+        const data = await res.json();
+        btn.disabled = false;
+        btn.innerHTML = ' Send Reminder Email to All Non-Filers';
+        if (data.ok) {
+            showToast(` Sent ${data.sent} email(s). Skipped ${data.skipped_no_email} (no email). Total targeted: ${data.total_targets}.`);
+        } else {
+            showToast(' Failed to send emails', true);
+        }
+    }
+</script>
+{% endblock %}

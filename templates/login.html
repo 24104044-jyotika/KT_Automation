@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MU Automation Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-bg-shape s1"></div>
+    <div class="auth-bg-shape s2"></div>
+    <div class="auth-card">
+        <div class="auth-logos">
+            <div class="auth-logo-placeholder"><img src="{{ url_for('static', filename='apsit.png') }}"></div>
+            <div style="text-align:center">
+                <div style="font-size:0.7rem;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase">University of Mumbai</div>
+                <div style="font-size:0.75rem;font-weight:700;color:var(--teal)">Student Portal</div>
+            </div>
+            <div class="auth-logo-placeholder"><img src="{{ url_for('static', filename='mumbai_university.png') }}"></div>
+        </div>
+
+        <h1>Welcome Back</h1>
+        <p class="subtitle">Login to access your portal</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}" style="margin-bottom:16px"><span>{{ '' if cat=='success' else '' }}</span>{{ msg }}</div>
+            {% endfor %}{% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input class="form-control" type="email" id="email" name="email" placeholder="you@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input class="form-control" type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+
+        <div class="auth-footer" style="margin-top:16px">
+            Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+        </div>
+        <div class="auth-footer" style="margin-top:10px">
+            <a href="{{ url_for('forgot_password') }}" style="color:var(--text3);font-size:0.82rem"> Forgot your password?</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

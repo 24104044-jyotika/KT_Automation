@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register – MU Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+
+<body>
+    <div class="auth-page">
+        <div class="auth-bg-shape s1"></div>
+        <div class="auth-bg-shape s2"></div>
+        <div class="auth-card" style="max-width:500px">
+            <div class="auth-logos" style="justify-content: center; gap: 20px">
+                <div style="text-align: center; flex: 1">
+                    <div
+                        style="font-size: 0.7rem; font-weight: 600; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px">
+                        University of Mumbai</div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--teal)">Student Portal</div>
+                </div>
+            </div>
+
+            <h1 style="text-align: center; margin-bottom: 12px">Create Account</h1>
+            <p class="subtitle" style="text-align: center; margin-bottom: 32px">Register to track your results,
+                revaluation & photocopy</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}" style="margin-bottom: 20px; justify-content: center"><span></span>{{ msg
+                }}</div>
+            {% endfor %}{% endif %}
+            {% endwith %}
+
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for('register') }}">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input class="form-control" type="text" id="name" name="name" placeholder="Your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input class="form-control" type="email" id="email" name="email" placeholder="you@example.com"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">
+                        WhatsApp Number
+                        <span style="font-weight:400;color:var(--text3);font-size:0.8rem">(for instant alerts)</span>
+                    </label>
+                    <div style="position: relative">
+                        <span
+                            style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; color: var(--text3)">
+                            +91</span>
+                        <input class="form-control" type="tel" id="phone" name="phone" placeholder="9876543210"
+                            maxlength="10" style="padding-left: 68px">
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text3); margin-top: 6px">
+                        You'll receive WhatsApp updates on this number. Leave blank to skip.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="department">Department</label>
+                    <select class="form-control" id="department" name="department" required>
+                        <option value="" disabled selected>Select your department</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Computer Engineering">Computer Engineering</option>
+                        <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                        <option value="Civil Engineering">Civil Engineering</option>
+                        <option value="Chemical Engineering">Chemical Engineering</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="semester">Current Semester</label>
+                    <select class="form-control" id="semester" name="semester" required>
+                        <option value="" disabled selected>Select your semester</option>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option>
+                        <option value="8">Semester 8</option>
+                    </select>
+                </div>
+                <!-- Optional Caste Certificate -->
+                <div class="form-group">
+                    <label for="caste_certificate">
+                        Caste Certificate
+                        <span style="font-weight:400;color:var(--text3);font-size:0.8rem">(optional)</span>
+                    </label>
+                    <div id="ccDropZone" onclick="document.getElementById('caste_certificate').click()"
+                         style="border:2px dashed #b0bec5;border-radius:10px;padding:18px;
+                                text-align:center;cursor:pointer;background:#f9f9f9;transition:all 0.2s">
+                        <div style="font-size:1.5rem;margin-bottom:4px">📄</div>
+                        <p style="font-weight:600;color:#546e7a;margin:0;font-size:0.85rem">Click to upload certificate</p>
+                        <p style="font-size:0.75rem;color:var(--text3);margin-top:3px">PDF, JPG, or PNG · Max 5MB</p>
+                        <input type="file" id="caste_certificate" name="caste_certificate"
+                               accept=".png,.jpg,.jpeg,.pdf" style="display:none"
+                               onchange="showCCFile(this)">
+                        <div id="ccFileName" style="margin-top:6px;font-size:0.82rem;color:#1a8a7a;font-weight:600"></div>
+                    </div>
+                    <div style="font-size:0.73rem;color:var(--text3);margin-top:5px">
+                        Upload if you have a valid caste certificate. This may be required for fee concessions.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input class="form-control" type="password" id="password" name="password"
+                        placeholder="Create a strong password" required minlength="6">
+                </div>
+
+                
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </form>
+
+            <div class="auth-footer" style="margin-top: 16px">
+                Already have an account? <a href="{{ url_for('login') }}">Login</a>
+            </div>
+        </div>
+    </div>
+    <script>
+    function showCCFile(input) {
+        const f = input.files[0];
+        if (f) {
+            document.getElementById('ccFileName').textContent = '✔ ' + f.name;
+            document.getElementById('ccDropZone').style.borderColor = '#1a8a7a';
+            document.getElementById('ccDropZone').style.background = '#e8f7ee';
+        }
+    }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – MU Portal{% endblock %}
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px
+    }
+
+    .chart-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 22px
+    }
+
+    .chart-card h3 {
+        margin: 0 0 16px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text)
+    }
+
+    .chart-wrap {
+        position: relative;
+        height: 240px
+    }
+
+    .kt-highlight {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        background: linear-gradient(135deg, #e8f5f3, #d0ece8);
+        border: 1.5px solid #7fcfc8;
+        border-radius: 14px;
+        padding: 20px 28px;
+        margin-bottom: 24px;
+        flex-wrap: wrap
+    }
+
+    .kt-big {
+        font-size: 3.2rem;
+        font-weight: 800;
+        color: #136b5e;
+        line-height: 1
+    }
+
+    .weak-table td,
+    .weak-table th {
+        padding: 8px 12px;
+        font-size: 0.84rem
+    }
+
+    .weak-table th {
+        background: #e8f5f3;
+        color: #136b5e;
+        font-weight: 700
+    }
+
+    .export-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 14px 20px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 20px
+    }
+
+    @media(max-width:768px) {
+        .charts-grid {
+            grid-template-columns: 1fr
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Admin Dashboard</h1>
+    <p>Manage student applications, fees, and monitor the portal.</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+
+        <div class="stat-info">
+            <p>Total Students</p>
+            <h2>{{ total_students }}</h2>
+        </div>
+    </div>
+    <div class="stat-card">
+
+        <div class="stat-info">
+            <p>Pending Revaluation</p>
+            <h2>{{ pending_reval }}</h2>
+        </div>
+    </div>
+    <div class="stat-card">
+
+        <div class="stat-info">
+            <p>Pending Photocopy</p>
+            <h2>{{ pending_photo }}</h2>
+        </div>
+    </div>
+    <div class="stat-card">
+
+        <div class="stat-info">
+            <p>Active Monitoring</p>
+            <h2>{{ monitoring }}</h2>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left:3px solid var(--danger)">
+
+        <div class="stat-info">
+            <p>Re-Exam Pending</p>
+            <h2 style="color:var(--danger)">{{ failed_after_reval }}</h2>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- ═══ ANALYTICS ═══ -->
+<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">Analytics Dashboard</h2>
+
+<!-- KT % Highlight -->
+<div class="kt-highlight">
+    <div class="kt-big">{{ kt_percent }}%</div>
+    <div>
+        <div style="font-size:1rem;font-weight:700;color:#136b5e">Students with KT (Back Papers)</div>
+        <div style="font-size:0.85rem;color:var(--text2);margin-top:4px">
+            {{ students_with_kt }} out of {{ total_students }} students have applied for revaluation
+        </div>
+    </div>
+    <div style="margin-left:auto">
+        <canvas id="ktDonut" width="90" height="90"></canvas>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+    <div class="chart-card">
+        <h3>Subject-wise KT Applications (Top 8)</h3>
+        <div class="chart-wrap"><canvas id="subjectChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <h3>Semester-wise Trend</h3>
+        <div class="chart-wrap"><canvas id="semChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <h3>Department-wise Distribution</h3>
+        <div class="chart-wrap"><canvas id="deptChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+        <h3>Application Status Overview</h3>
+        <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+    </div>
+</div>
+
+<!-- ═══ FACULTY INSIGHTS ═══ -->
+<div class="card mb-3">
+    <div class="section-header">
+        <h2>Faculty Insights — Weak Students</h2>
+        <span style="font-size:0.78rem;color:var(--text3)">Ranked by number of KT applications</span>
+    </div>
+    {% if weak_students %}
+    <div class="table-wrap">
+        <table class="weak-table" style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th style="text-align:center">Sem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in weak_students %}
+                <tr>
+                    <td style="font-weight:600;color:var(--text3)">{{ loop.index }}</td>
+                    <td><strong>{{ s.name }}</strong></td>
+                    <td style="font-size:0.82rem;color:var(--text2)">{{ s.email }}</td>
+                    <td>{{ s.department or '—' }}</td>
+                    <td style="text-align:center;font-weight:700;color:var(--teal)">
+                        {{ s.semester or '—' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:30px;color:var(--text3)">KT data will appear here as students apply.</div>
+    {% endif %}
+</div>
+
+<!-- Export -->
+<div class="export-bar">
+    <span style="font-weight:600;font-size:0.88rem;color:var(--text2)"> Export Records:</span>
+    <a href="{{ url_for('export_reval_csv') }}" class="btn btn-secondary btn-sm"> Revaluation CSV</a>
+    <a href="{{ url_for('export_photo_csv') }}" class="btn btn-secondary btn-sm"> Photocopy CSV</a>
+    <span style="font-size:0.75rem;color:var(--text3)">All records — ready for Excel/Google Sheets</span>
+</div>
+
+<!-- Recent Tables -->
+<div class="dash-grid">
+    <div class="card">
+        <div class="section-header">
+            <h2>Recent Revaluation Apps</h2>
+            <a href="{{ url_for('admin_reval_list') }}" class="btn btn-secondary btn-sm">View All →</a>
+        </div>
+        {% if recent_reval %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Fee</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in recent_reval %}
+                    <tr>
+                        <td><strong>{{ app.student.name }}</strong></td>
+                        <td class="subject-tag">{{ app.subject_name }}</td>
+                        <td class="fw-mono" style="color:var(--teal);font-weight:700">₹{{ app.fee_amount }}</td>
+                        <td>{% set sm={'Applied':'badge-applied','Monitoring':'badge-monitoring','Result
+                            Updated':'badge-updated'} %}
+                            <span class="badge {{ sm.get(app.status,'badge-applied') }}">{{ app.status }}</span>
+                        </td>
+                        <td class="date-tag">{{ app.applied_at.strftime('%d %b') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}<div style="text-align:center;padding:30px;color:var(--text3)">No applications yet</div>{% endif %}
+    </div>
+    <div class="card">
+        <div class="section-header">
+            <h2>Recent Photocopy Apps</h2>
+            <a href="{{ url_for('admin_photo_list') }}" class="btn btn-secondary btn-sm">View All →</a>
+        </div>
+        {% if recent_photo %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Fee</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in recent_photo %}
+                    <tr>
+                        <td><strong>{{ app.student.name }}</strong></td>
+                        <td class="subject-tag">{{ app.subject_name }}</td>
+                        <td class="fw-mono" style="color:#c05621;font-weight:700">₹{{ app.fee_amount }}</td>
+                        <td>{% set sm={'Applied':'badge-applied','In
+                            Progress':'badge-progress','Delivered':'badge-delivered'} %}
+                            <span class="badge {{ sm.get(app.status,'badge-applied') }}">{{ app.status }}</span>
+                        </td>
+                        <td class="date-tag">{{ app.applied_at.strftime('%d %b') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}<div style="text-align:center;padding:30px;color:var(--text3)">No applications yet</div>{% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const TEAL = '#1a8a7a', TEAL_L = '#e8f5f3', DANGER = '#e05252';
+    const PALETTE = ['#1a8a7a', '#26c0ac', '#c05621', '#e05252', '#7c3aed', '#2563eb', '#0ea5e9', '#f59e0b'];
+    Chart.defaults.font.family = "'Sora',sans-serif";
+    Chart.defaults.color = '#4a6360';
+
+    new Chart(document.getElementById('ktDonut'), {
+        type: 'doughnut',
+        data: { datasets: [{ data: [{{ kt_percent }}, {{ 100-kt_percent }}], backgroundColor: [TEAL, TEAL_L], borderWidth: 0
+    }]},
+        options: { cutout: '72%', responsive: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+});
+
+    const SL = {{ subject_labels| safe }}, SV = {{ subject_values | safe }};
+    if (SL.length > 0) {
+        new Chart(document.getElementById('subjectChart'), {
+            type: 'bar',
+            data: { labels: SL, datasets: [{ label: 'KT Apps', data: SV, backgroundColor: PALETTE, borderRadius: 6, borderSkipped: false }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e8f0ee' }, ticks: { stepSize: 1 } },
+                    x: { grid: { display: false }, ticks: { maxRotation: 35, font: { size: 10 } } }
+                }
+            }
+        });
+    } else { document.getElementById('subjectChart').parentElement.innerHTML = '<p style="text-align:center;color:#7a9997;padding:60px 0;font-size:0.85rem">No data yet</p>'; }
+
+    const SeL = {{ sem_labels| safe }}, SeV = {{ sem_values | safe }};
+    if (SeL.length > 0) {
+        new Chart(document.getElementById('semChart'), {
+            type: 'line',
+            data: { labels: SeL, datasets: [{ label: 'KT Apps', data: SeV, borderColor: TEAL, backgroundColor: TEAL_L, fill: true, tension: 0.4, pointBackgroundColor: TEAL, pointRadius: 5 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: '#e8f0ee' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } }
+            }
+        });
+    } else { document.getElementById('semChart').parentElement.innerHTML = '<p style="text-align:center;color:#7a9997;padding:60px 0;font-size:0.85rem">No data yet</p>'; }
+
+    const DL = {{ dept_labels| safe }}, DV = {{ dept_values | safe }};
+    if (DL.length > 0) {
+        new Chart(document.getElementById('deptChart'), {
+            type: 'pie',
+            data: { labels: DL, datasets: [{ data: DV, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+        });
+    } else { document.getElementById('deptChart').parentElement.innerHTML = '<p style="text-align:center;color:#7a9997;padding:60px 0;font-size:0.85rem">Add department to students to see this chart</p>'; }
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'Monitoring', 'Re-Exam'],
+            datasets: [{ data: [{{ pending_reval }}, {{ monitoring }},{{ failed_after_reval }}], backgroundColor: [TEAL, '#2563eb', DANGER], borderWidth: 2, borderColor: '#fff'}]
+    },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+});
+</script>
+{% endblock %}
