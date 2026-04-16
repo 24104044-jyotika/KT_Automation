@@ -9,16 +9,10 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
 
-    # ── Email (Flask-Mail via Gmail) ──────────────────────────────────────
-    # Step 1: Enable 2-Factor Auth on your Gmail account
-    # Step 2: Go to Google Account → Security → App Passwords → Generate
-    # Step 3: Paste the 16-char app password below
-    MAIL_SERVER          = os.environ.get('MAIL_SERVER',   'smtp.gmail.com')
-    MAIL_PORT            = int(os.environ.get('MAIL_PORT', 587))
-    MAIL_USE_TLS         = True
-    MAIL_USERNAME        = os.environ.get('MAIL_USERNAME', 'jyotika.rao2006@gmail.com')   
-    MAIL_PASSWORD        = os.environ.get('MAIL_PASSWORD', 'pwvdfjuozhrrkrom')   
-    MAIL_DEFAULT_SENDER  = os.environ.get('MAIL_DEFAULT_SENDER', 'MU Portal <noreply@mu.ac.in>')
+    # ── Email (Brevo Transactional Email API) ─────────────────────────────
+    BREVO_API_KEY        = os.environ.get('BREVO_API_KEY', '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')
+    BREVO_SENDER_EMAIL   = os.environ.get('BREVO_SENDER_EMAIL', 'jyotika.rao2006@gmail.com')   # your verified Brevo sender email
+    BREVO_SENDER_NAME    = os.environ.get('BREVO_SENDER_NAME', 'MU Portal')
 
     # ── WhatsApp (Twilio) ─────────────────────────────────────────────────
     # Step 1: Sign up at https://www.twilio.com (free trial available)

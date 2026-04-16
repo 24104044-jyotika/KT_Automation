@@ -1,7 +1,12 @@
-"""email_utils.py — HTML email templates via Flask-Mail"""
-from flask_mail import Message
+"""email_utils.py — HTML email templates via Brevo Transactional Email API (HTTP)
+Replaces Flask-Mail/SMTP entirely — works on Railway with no port issues.
+"""
+import requests
 import logging
 from flask import current_app
+
+logger = logging.getLogger(__name__)
+
 _STYLE = """
 body{font-family:'Segoe UI',sans-serif;background:#eef2f0;margin:0;padding:32px}
 .wrap{max-width:560px;margin:0 auto;background:#fff;border-radius:16px;
@@ -29,15 +34,58 @@ body{font-family:'Segoe UI',sans-serif;background:#eef2f0;margin:0;padding:32px}
 .footer{background:#f5f8f7;padding:16px 36px;font-size:.78rem;color:#7a9997;border-top:1px solid #d0e4e1}
 """
 
-def _send(mail, subject, recipients, html_body):
+
+def _send(subject, recipients, html_body):
+    """
+    Send email via Brevo Transactional Email API (HTTP POST).
+    `recipients` can be a single email string or a list of email strings.
+    """
+    api_key = current_app.config.get('BREVO_API_KEY')
+    sender_email = current_app.config.get('BREVO_SENDER_EMAIL')
+    sender_name = current_app.config.get('BREVO_SENDER_NAME', 'MU Portal')
+
+    if not api_key:
+        logger.warning(f"[EMAIL not configured] BREVO_API_KEY missing | To:{recipients} | {subject}")
+        print(f"[EMAIL not configured] To:{recipients} | {subject}")
+        return
+
+    if isinstance(recipients, str):
+        recipients = [recipients]
+
+    to_list = [{"email": addr} for addr in recipients]
+
+    payload = {
+        "sender": {"name": sender_name, "email": sender_email},
+        "to": to_list,
+        "subject": subject,
+        "htmlContent": html_body,
+    }
+
     try:
-        if not current_app.config.get('MAIL_USERNAME'):
-            print(f"[EMAIL not configured] To:{recipients} | {subject}"); return
-        msg = Message(subject=subject, recipients=recipients, html=html_body)
-        mail.send(msg)
-        print(f"[EMAIL sent] {recipients}")
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=10,
+        )
+        response.raise_for_status()
+        print(f"[EMAIL sent] {recipients} | messageId: {response.json().get('messageId','')}")
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"[EMAIL HTTP error] {e} | response: {e.response.text if e.response else 'N/A'}")
+        print(f"[EMAIL HTTP error] {e}")
     except Exception as e:
+        logger.error(f"[EMAIL error] {e}")
         print(f"[EMAIL error] {e}")
+
+
+# ─── NOTE: All functions below keep the same signatures as before ─────────────
+# The only change is: `mail` parameter is accepted but IGNORED (kept for
+# backward compatibility so you don't need to change any call sites in app.py
+# or scheduler.py).
+# ─────────────────────────────────────────────────────────────────────────────
 
 def send_welcome(mail, name, email):
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
@@ -45,7 +93,8 @@ def send_welcome(mail, name, email):
     <div class="body"><p>Hi <strong>{name}</strong>,</p>
     <p>Welcome! You can now apply for Revaluation &amp; Photocopy requests and track them.</p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, "Welcome to MU Automation Portal!", [email], html)
+    _send("Welcome to MU Automation Portal!", [email], html)
+
 
 def send_application_submitted(mail, name, email, app_type, subject, app_id, fee):
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
@@ -64,7 +113,8 @@ def send_application_submitted(mail, name, email, app_type, subject, app_id, fee
     </div>
     <p>You will be notified once admin verifies your request.</p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, f"{app_type} Application Submitted – ₹{fee} Fee", [email], html)
+    _send(f"{app_type} Application Submitted – ₹{fee} Fee", [email], html)
+
 
 def send_reval_verified(mail, name, email, subject, app_id, fee):
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
@@ -75,7 +125,7 @@ def send_reval_verified(mail, name, email, subject, app_id, fee):
     <div class="detail-box"><h3>Details</h3><table>
     <tr><td>App ID</td><td><strong>#{app_id}</strong></td></tr>
     <tr><td>Subject</td><td>{subject}</td></tr>
-    <tr><td>Status</td><td> Monitoring MU Result Page</td></tr>
+    <tr><td>Status</td><td>✅ Monitoring MU Result Page</td></tr>
     </table></div>
     <div class="fee-box">
     <div class="amount">₹{fee}</div>
@@ -83,7 +133,8 @@ def send_reval_verified(mail, name, email, subject, app_id, fee):
     </div>
     <p>The system will auto-notify you the moment your result is updated. No action needed!</p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, f"Revaluation Verified – Now Monitoring | {subject}", [email], html)
+    _send(f"Revaluation Verified – Now Monitoring | {subject}", [email], html)
+
 
 def send_result_updated(mail, name, email, subject, result, app_id):
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
@@ -98,7 +149,8 @@ def send_result_updated(mail, name, email, subject, result, app_id):
     </table></div>
     <p>Please verify on the official MU exam portal as well.</p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, f"Revaluation Result Updated – {subject}", [email], html)
+    _send(f"Revaluation Result Updated – {subject}", [email], html)
+
 
 def send_photocopy_verified(mail, name, email, subject, expected_by, app_id, fee):
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
@@ -109,7 +161,7 @@ def send_photocopy_verified(mail, name, email, subject, expected_by, app_id, fee
     <div class="detail-box"><h3>Details</h3><table>
     <tr><td>App ID</td><td><strong>#{app_id}</strong></td></tr>
     <tr><td>Subject</td><td>{subject}</td></tr>
-    <tr><td>Expected By</td><td> {expected_by}</td></tr>
+    <tr><td>Expected By</td><td>📅 {expected_by}</td></tr>
     </table></div>
     <div class="fee-box">
     <div class="amount">₹{fee}</div>
@@ -117,7 +169,8 @@ def send_photocopy_verified(mail, name, email, subject, expected_by, app_id, fee
     </div>
     <p>Photocopies take 15–20 days. You'll get a reminder before delivery.</p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, f"Photocopy Verified – ₹{fee} Fee | {subject}", [email], html)
+    _send(f"Photocopy Verified – ₹{fee} Fee | {subject}", [email], html)
+
 
 def send_photocopy_reminder(mail, name, email, subject, expected_by, app_id):
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
@@ -127,13 +180,14 @@ def send_photocopy_reminder(mail, name, email, subject, expected_by, app_id):
     <p>Your photocopy for <strong>{subject}</strong> is expected by <strong>{expected_by}</strong>.</p>
     <p>Once received, please mark it as received on the portal.</p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, f"Photocopy Reminder – {subject}", [email], html)
+    _send(f"Photocopy Reminder – {subject}", [email], html)
+
 
 def send_rexam_reminder(mail, name, email, subject, semester, prn, reminder_num):
-    urgency_color = ["#e09820","#c05621","#e05252","#c0392b"][min(reminder_num-1,3)]
+    urgency_color = ["#e09820", "#c05621", "#e05252", "#c0392b"][min(reminder_num - 1, 3)]
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
     <div class="header" style="background:{urgency_color}">
-    <h1> Re-Exam Form Alert – Reminder #{reminder_num}</h1>
+    <h1>⚠️ Re-Exam Form Alert – Reminder #{reminder_num}</h1>
     <p>Action required: Fill the re-exam form</p></div>
     <div class="body">
     <p>Hi <strong>{name}</strong>,</p>
@@ -160,13 +214,14 @@ def send_rexam_reminder(mail, name, email, subject, semester, prn, reminder_num)
     </ol></div>
     </div><div class="footer">University of Mumbai Student Portal — This is an automated reminder.</div>
     </div></body></html>"""
-    _send(mail, f"Re-Exam Form Reminder #{reminder_num} – {subject}", [email], html)
+    _send(f"Re-Exam Form Reminder #{reminder_num} – {subject}", [email], html)
 
 
 def send_password_reset(mail, name, email, token):
-    reset_url = f"http://localhost:5000/reset-password/{token}"
+    base_url = current_app.config.get('BASE_URL', 'http://localhost:5000')
+    reset_url = f"{base_url}/reset-password/{token}"
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
-    <div class="header"><h1> Password Reset Request</h1><p>Reset your MU Portal password</p></div>
+    <div class="header"><h1>🔒 Password Reset Request</h1><p>Reset your MU Portal password</p></div>
     <div class="body">
     <p>Hi <strong>{name}</strong>,</p>
     <p>We received a request to reset your password. Click the button below to create a new password.</p>
@@ -176,13 +231,13 @@ def send_password_reset(mail, name, email, token):
          display:inline-block">Reset My Password</a>
     </div>
     <div class="warning-box">
-      <h3> Important</h3>
+      <h3>⚠️ Important</h3>
       <p>This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your password won't change.</p>
     </div>
     <p style="font-size:0.82rem;color:#7a9997">If the button doesn't work, paste this link in your browser:<br>
     <span style="color:#1a8a7a;word-break:break-all">{reset_url}</span></p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
-    _send(mail, "Reset Your MU Portal Password", [email], html)
+    _send("Reset Your MU Portal Password", [email], html)
 
 
 def send_login_otp(mail, name, email, otp_code):
@@ -209,18 +264,14 @@ def send_login_otp(mail, name, email, otp_code):
         <div class="content">
             <p>Hello <strong>{name}</strong>,</p>
             <p>You have requested to access your account. Please use the One-Time Password (OTP) below to complete your login:</p>
-            
             <div class="otp-box">
                 <div class="otp-code">{otp_code}</div>
                 <div class="otp-validity">Valid for 5 minutes only</div>
             </div>
-            
             <p style="margin-top: 25px;">If you did not attempt to log in, please disregard this email and verify your account security immediately.</p>
-            
             <div class="security-warning">
                 <strong>Security Notice:</strong> Never share this code with anyone. Our support staff will never ask you for this code via email or phone.
             </div>
-            
             <p>Best regards,<br><strong>MU Automation Portal Team</strong></p>
         </div>
         <div class="footer">
@@ -228,7 +279,7 @@ def send_login_otp(mail, name, email, otp_code):
         </div>
     </div>
     </body></html>"""
-    _send(mail, "Your MU Portal Login Verification Code", [email], html)
+    _send("Your MU Portal Login Verification Code", [email], html)
 
 
 def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, seat, mail_count):
@@ -238,7 +289,7 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
     ordinal = {1: '1st', 2: '2nd', 3: '3rd'}.get(mail_count, f'{mail_count}th')
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
     <div class="header" style="background:{color}">
-        <h1> Exam Form Filing Reminder — {ordinal} Notice</h1>
+        <h1>📋 Exam Form Filing Reminder — {ordinal} Notice</h1>
         <p>A.P. Shah Institute of Technology | Mumbai University</p>
     </div>
     <div class="body">
@@ -255,7 +306,7 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
         </div>
 
         <div class="warning-box">
-            <h3> Steps to File the Re-Exam Form</h3>
+            <h3>📝 Steps to File the Re-Exam Form</h3>
             <ol style="color:#92400e;font-size:.88rem;margin:0;padding-left:18px;line-height:1.9">
                 <li>Visit <strong>mu.ac.in</strong> → Student Login</li>
                 <li>Go to <strong>Exam → Re-Exam / KT Form</strong></li>
@@ -266,7 +317,7 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
         </div>
 
         <p style="color:#c0392b;font-weight:600;font-size:.92rem">
-             Missing the deadline means losing your chance to appear in the re-exam.
+            ⚠️ Missing the deadline means losing your chance to appear in the re-exam.
             Please act immediately.
         </p>
 
@@ -278,4 +329,8 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
         This is an automated reminder — Reminder #{mail_count}
     </div>
     </div></body></html>"""
-    _send(mail, f"[APSIT] Exam Form Not Filed — {subject} (Sem {semester}) — Reminder #{mail_count}", [email], html)
+    _send(
+        f"[APSIT] Exam Form Not Filed — {subject} (Sem {semester}) — Reminder #{mail_count}",
+        [email],
+        html
+    )

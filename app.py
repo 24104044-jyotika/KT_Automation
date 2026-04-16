@@ -18,13 +18,13 @@ app.config.from_object(Config)
 # ── IMPORTANT: init extensions BEFORE importing models ──
 from extensions import db, mail
 db.init_app(app)
-mail.init_app(app)
+# mail.init_app(app)  # Removed: Brevo HTTP API used instead of Flask-Mail
  
 # ── NOW import models (db is ready) ──
 from models import *
  
 from flask_sqlalchemy import SQLAlchemy
-from flask_mail import Mail
+# from flask_mail import Mail  # Removed: using Brevo HTTP API
  
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'marksheets'), exist_ok=True)

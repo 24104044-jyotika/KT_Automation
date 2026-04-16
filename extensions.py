@@ -1,8 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
-from flask_mail import Mail
+
 
 db = SQLAlchemy()
-mail = Mail()
+mail = None
 
 import os
 from supabase import create_client, Client
