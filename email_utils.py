@@ -187,7 +187,7 @@ def send_rexam_reminder(mail, name, email, subject, semester, prn, reminder_num)
     urgency_color = ["#e09820", "#c05621", "#e05252", "#c0392b"][min(reminder_num - 1, 3)]
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
     <div class="header" style="background:{urgency_color}">
-    <h1>⚠️ Re-Exam Form Alert – Reminder #{reminder_num}</h1>
+    <h1>Re-Exam Form Alert – Reminder #{reminder_num}</h1>
     <p>Action required: Fill the re-exam form</p></div>
     <div class="body">
     <p>Hi <strong>{name}</strong>,</p>
@@ -289,7 +289,7 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
     ordinal = {1: '1st', 2: '2nd', 3: '3rd'}.get(mail_count, f'{mail_count}th')
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
     <div class="header" style="background:{color}">
-        <h1>📋 Exam Form Filing Reminder — {ordinal} Notice</h1>
+        <h1>Exam Form Filing Reminder — {ordinal} Notice</h1>
         <p>A.P. Shah Institute of Technology | Mumbai University</p>
     </div>
     <div class="body">
