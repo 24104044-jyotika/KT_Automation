@@ -9,4 +9,6 @@ Pillow==10.0.1
 pytesseract==0.3.10
 requests==2.31.0
 beautifulsoup4==4.12.2
- 
+supabase
+gunicorn
+psycopg2-binary
