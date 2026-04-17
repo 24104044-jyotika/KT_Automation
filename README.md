@@ -12,7 +12,7 @@ python app.py
 # Open http://127.0.0.1:5000
 ```
 
-Default admin login: `admin@mu.ac.in` / `admin123`
+
 
 ---
 
