@@ -82,6 +82,10 @@ COURSE_MAP: Dict[str, str] = {
     '2343122': 'DBMS Lab',
     '2343123': 'Data Structures Lab',
     '2343124': 'OOP Methodology Lab',
+    '2343611': 'Mini-Project - Full Stack Java Programming',
+    '2343116': 'SQL Lab',
+    '2993511': 'Entrepreneurship Development',
+    '2993512' : 'Environmental Science',
     # Semester IV
     '2343131': 'Applied Mathematics-IV',
     '2343132': 'Analysis of Algorithms',
