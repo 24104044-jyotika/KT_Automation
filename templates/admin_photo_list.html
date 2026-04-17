@@ -37,7 +37,8 @@
                     <td><strong>{{ app.student.name }}</strong><br><span style="font-size:0.78rem;color:var(--text3)">{{ app.student.email }}</span></td>
                     <td class="fw-mono">{{ app.prn_number }}</td>
                     <td class="subject-tag">{{ app.subject_name }}</td>
-                    <td><span class="chip">Sem {{ app.semester }}</span> <br>{{ app.exam_year }}</td>
+                    <td><span class="chip">Sem {{ app.semester }}</span> 
+                        <br>{{ app.exam_year }}</td>
                     <td>
                         {% set sm={'Applied':'badge-applied','In Progress':'badge-progress','Delivered':'badge-delivered'} %}
                         <span class="badge {{ sm.get(app.status,'badge-applied') }}">{{ app.status }}</span>
