@@ -125,7 +125,7 @@ def send_reval_verified(mail, name, email, subject, app_id, fee):
     <div class="detail-box"><h3>Details</h3><table>
     <tr><td>App ID</td><td><strong>#{app_id}</strong></td></tr>
     <tr><td>Subject</td><td>{subject}</td></tr>
-    <tr><td>Status</td><td>✅ Monitoring MU Result Page</td></tr>
+    <tr><td>Status</td><td>Monitoring MU Result Page</td></tr>
     </table></div>
     <div class="fee-box">
     <div class="amount">₹{fee}</div>
@@ -161,7 +161,7 @@ def send_photocopy_verified(mail, name, email, subject, expected_by, app_id, fee
     <div class="detail-box"><h3>Details</h3><table>
     <tr><td>App ID</td><td><strong>#{app_id}</strong></td></tr>
     <tr><td>Subject</td><td>{subject}</td></tr>
-    <tr><td>Expected By</td><td>📅 {expected_by}</td></tr>
+    <tr><td>Expected By</td><td>{expected_by}</td></tr>
     </table></div>
     <div class="fee-box">
     <div class="amount">₹{fee}</div>
@@ -221,7 +221,7 @@ def send_password_reset(mail, name, email, token):
     base_url = current_app.config.get('BASE_URL', 'http://localhost:5000')
     reset_url = f"{base_url}/reset-password/{token}"
     html = f"""<html><head><style>{_STYLE}</style></head><body><div class="wrap">
-    <div class="header"><h1>🔒 Password Reset Request</h1><p>Reset your MU Portal password</p></div>
+    <div class="header"><h1>Password Reset Request</h1><p>Reset your MU Portal password</p></div>
     <div class="body">
     <p>Hi <strong>{name}</strong>,</p>
     <p>We received a request to reset your password. Click the button below to create a new password.</p>
@@ -231,7 +231,7 @@ def send_password_reset(mail, name, email, token):
          display:inline-block">Reset My Password</a>
     </div>
     <div class="warning-box">
-      <h3>⚠️ Important</h3>
+      <h3>Important</h3>
       <p>This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your password won't change.</p>
     </div>
     <p style="font-size:0.82rem;color:#7a9997">If the button doesn't work, paste this link in your browser:<br>
@@ -317,7 +317,7 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
         </div>
 
         <p style="color:#c0392b;font-weight:600;font-size:.92rem">
-            ⚠️ Missing the deadline means losing your chance to appear in the re-exam.
+            Missing the deadline means losing your chance to appear in the re-exam.
             Please act immediately.
         </p>
 
