@@ -34,16 +34,15 @@ from typing import Optional, Dict, List
 # ─── Subject Master (NEP 2020, APSIT IT) ──────────────────────────────────────
 COURSE_MAP: Dict[str, str] = {
     # Semester I
-    '10511': 'Applied Mathematics-I',
-    '10512': 'Applied Physics-I',
-    '10513': 'Applied Chemistry-I',
-    '10514': 'Engineering Mechanics',
-    '10515': 'Basic Electrical Engineering',
-    '10516': 'Engineering Drawing',
-    '10517': 'Workshop Practice',
-    '10518': 'Applied Physics-I Lab',
-    '10519': 'Applied Chemistry-I Lab',
-    '10520': 'Basic Electrical Engineering Lab',
+    '10411': 'Applied Mathematics-I',
+    '10412': 'Applied Physics-I',
+    '10413': 'Applied Chemistry-I',
+    '10414': 'Engineering Mechanics',
+    '10415': 'Basic Electrical Engineering',
+    '10416': 'Engineering Drawing',
+    '10416': 'Applied Physics-I Lab',
+    '10419': 'Applied Chemistry-I Lab',
+    '10420': 'Basic Electrical Engineering Lab',
     # Semester II
     '10521': 'Applied Mathematics-II',
     '10522': 'Engineering Graphics',
