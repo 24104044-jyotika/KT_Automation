@@ -38,10 +38,12 @@ COURSE_MAP: Dict[str, str] = {
     '10412': 'Applied Physics-I',
     '10413': 'Applied Chemistry-I',
     '10414': 'Engineering Mechanics',
+    '10418': 'Engineering Mechanics Lab',
     '10415': 'Basic Electrical Engineering',
     '10416': 'Engineering Drawing',
     '10416': 'Applied Physics-I Lab',
     '10419': 'Applied Chemistry-I Lab',
+    '10423': 'C Programming',
     '10420': 'Basic Electrical Engineering Lab',
     # Semester II
     '10521': 'Applied Mathematics-II',
