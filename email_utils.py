@@ -234,7 +234,7 @@ def send_password_reset(mail, name, email, token):
       <h3>Important</h3>
       <p>This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email — your password won't change.</p>
     </div>
-    <p style="font-size:0.82rem;color:#7a9997">If the button doesn't work, paste this link in your browser:<br>
+    <p style="font-size:0.82rem;color:#7a9997">Paste this link in your browser:<br>
     <span style="color:#1a8a7a;word-break:break-all">{reset_url}</span></p>
     </div><div class="footer">University of Mumbai Student Portal</div></div></body></html>"""
     _send("Reset Your MU Portal Password", [email], html)
@@ -306,7 +306,7 @@ def send_exam_form_reminder(mail, name, email, subject, semester, exam_year, sea
         </div>
 
         <div class="warning-box">
-            <h3>📝 Steps to File the Re-Exam Form</h3>
+            <h3>Steps to File the Re-Exam Form</h3>
             <ol style="color:#92400e;font-size:.88rem;margin:0;padding-left:18px;line-height:1.9">
                 <li>Visit <strong>mu.ac.in</strong> → Student Login</li>
                 <li>Go to <strong>Exam → Re-Exam / KT Form</strong></li>
